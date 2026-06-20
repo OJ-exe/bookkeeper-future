@@ -175,7 +175,7 @@ export default function Sidebar() {
                 </p>
 
                 <div className="space-y-1">
-                  {section.items.map((item) => {
+                  {section.items?.map((item) => {
                     const Icon = item.icon;
                     const active =
                       pathname === item.href;

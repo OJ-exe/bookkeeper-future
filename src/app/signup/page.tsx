@@ -141,7 +141,7 @@ export default function SignupPage() {
               </label>
 
               <select className="w-full rounded-xl border border-white/10 bg-[#08111F] p-3 text-white">
-                {countries.map((country) => (
+                {countries.map((country: string) => (
                   <option key={country}>
                     {country}
                   </option>
@@ -155,7 +155,7 @@ export default function SignupPage() {
               </label>
 
               <select className="w-full rounded-xl border border-white/10 bg-[#08111F] p-3 text-white">
-                {currencies.map((currency) => (
+                {currencies.map((currency: string) => (
                   <option key={currency}>
                     {currency}
                   </option>

@@ -7,6 +7,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import Card from "@/components/ui/Card";
+import CardSelect from "@/components/ui/CardSelect";
 import { useChartColors } from "@/lib/useChartColors";
 
 const data = [
@@ -27,12 +28,13 @@ export default function OutstandingDonut() {
   ];
 
   return (
-    <Card>
-      <div className="mb-4">
+    <Card className="h-full flex flex-col">
+      <div className="mb-4 flex items-start justify-between gap-3">
         <h2 className="text-base font-semibold text-fg">Outstanding Invoices</h2>
+        <CardSelect options={["All Time", "This Quarter", "This Month"]} />
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex flex-1 items-center gap-4">
         <div className="relative h-44 w-44 shrink-0">
           <ResponsiveContainer width="100%" height="100%">
             <PieChart>

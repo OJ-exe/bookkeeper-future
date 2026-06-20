@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import Card from "@/components/ui/Card";
+import CardSelect from "@/components/ui/CardSelect";
 import { useChartColors } from "@/lib/useChartColors";
 
 const data = [
@@ -26,13 +27,16 @@ export default function CashFlowChart() {
   const c = useChartColors();
 
   return (
-    <Card>
-      <div className="mb-4">
-        <h2 className="text-base font-semibold text-fg">Cash Flow</h2>
-        <p className="text-xs text-muted">Last 6 Months</p>
+    <Card className="h-full flex flex-col">
+      <div className="mb-4 flex items-start justify-between gap-3">
+        <div>
+          <h2 className="text-base font-semibold text-fg">Cash Flow</h2>
+          <p className="text-xs text-muted">Last 6 Months</p>
+        </div>
+        <CardSelect options={["6 Months", "3 Months", "12 Months", "This FY"]} />
       </div>
 
-      <div className="h-72">
+      <div className="flex-1 min-h-72">
         <ResponsiveContainer width="100%" height="100%">
           <LineChart data={data} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={c.grid} />

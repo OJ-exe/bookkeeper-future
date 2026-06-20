@@ -22,16 +22,17 @@ const aiPrompts = [
 
 export default function DashboardPage() {
   return (
-    <div className="space-y-6 mt-2">
-      {/* Greeting + top cards */}
+    <div className="space-y-8">
+      {/* Top band: main column (greeting + KPIs + quick actions) beside the tall Health/AI rail */}
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-        <div className="xl:col-span-5 flex items-start">
+        <div className="xl:col-span-8 space-y-6">
           <Greeting />
+          <KpiRow />
+          <QuickActionsRow />
         </div>
-        <div className="xl:col-span-4">
+
+        <div className="xl:col-span-4 grid grid-cols-1 sm:grid-cols-2 gap-6 items-stretch [&>*]:h-full">
           <BusinessHealthCard />
-        </div>
-        <div className="xl:col-span-3">
           <AIRailPanel
             prompts={aiPrompts}
             greeting="Hi Ojaswini! How can I help you today?"
@@ -39,18 +40,15 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <KpiRow />
-      <QuickActionsRow />
-
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch [&>*]:h-full">
         <CashFlowChart />
         <RevenueExpensesChart />
         <OutstandingDonut />
       </div>
 
       {/* Lower row */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-stretch [&>*]:h-full">
         <SetupWorkbench />
         <TodaysFocusCard />
         <RecentActivity />

@@ -11,6 +11,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import Card from "@/components/ui/Card";
+import CardSelect from "@/components/ui/CardSelect";
 import { useChartColors } from "@/lib/useChartColors";
 
 const data = [
@@ -26,12 +27,13 @@ export default function RevenueExpensesChart() {
   const c = useChartColors();
 
   return (
-    <Card>
-      <div className="mb-4">
+    <Card className="h-full flex flex-col">
+      <div className="mb-4 flex items-start justify-between gap-3">
         <h2 className="text-base font-semibold text-fg">Revenue vs Expenses</h2>
+        <CardSelect options={["This Financial Year", "Last Quarter", "This Month"]} />
       </div>
 
-      <div className="h-72">
+      <div className="flex-1 min-h-72">
         <ResponsiveContainer width="100%" height="100%">
           <BarChart data={data} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={c.grid} />

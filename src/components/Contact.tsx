@@ -13,13 +13,13 @@ export default function Contact() {
           </span>
 
           <h2 className="mt-6 text-4xl font-bold text-white md:text-5xl">
-            Let's talk about your finances.
+            Let&apos;s talk about your finances.
           </h2>
 
           <p className="mx-auto mt-6 max-w-2xl text-lg text-gray-400">
             Whether you need bookkeeping,
             payroll support, tax preparation
-            or financial reporting, we're here
+            or financial reporting, we&apos;re here
             to help.
           </p>
 

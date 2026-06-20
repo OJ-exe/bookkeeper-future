@@ -9,7 +9,7 @@ export default function TodaysFocus() {
   return (
     <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-sm">
       <h2 className="text-xl font-semibold mb-6">
-        Today's Focus
+        Today&apos;s Focus
       </h2>
 
       <div className="space-y-4">

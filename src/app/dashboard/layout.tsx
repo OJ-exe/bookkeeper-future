@@ -1,5 +1,4 @@
 import Sidebar from "@/components/dashboard/Sidebar";
-import Topbar from "@/components/dashboard/Topbar";
 import { SidebarProvider } from "@/components/dashboard/SidebarProvider";
 import DashboardMain from "@/components/dashboard/DashboardMain";
 
@@ -16,10 +15,7 @@ export default function DashboardLayout({
       <script dangerouslySetInnerHTML={{ __html: sidebarScript }} />
       <div className="min-h-screen bg-canvas">
         <Sidebar />
-        <DashboardMain>
-          <Topbar />
-          {children}
-        </DashboardMain>
+        <DashboardMain>{children}</DashboardMain>
       </div>
     </SidebarProvider>
   );

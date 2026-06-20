@@ -1,6 +1,7 @@
 "use client";
 
 import { useSidebar } from "@/components/dashboard/SidebarProvider";
+import Topbar from "@/components/dashboard/Topbar";
 
 export default function DashboardMain({
   children,
@@ -10,11 +11,14 @@ export default function DashboardMain({
   const { collapsed } = useSidebar();
   return (
     <main
-      className={`min-h-screen px-4 lg:px-8 pt-8 lg:pt-10 pb-12 transition-[margin] duration-300 ease-out ${
+      className={`min-h-screen transition-[margin] duration-300 ease-out ${
         collapsed ? "lg:ml-16" : "lg:ml-72"
       }`}
     >
-      <div className="max-w-[1600px] mx-auto space-y-8">{children}</div>
+      <Topbar />
+      <div className="px-4 lg:px-8 pt-8 pb-12">
+        <div className="max-w-[1600px] mx-auto space-y-8">{children}</div>
+      </div>
     </main>
   );
 }

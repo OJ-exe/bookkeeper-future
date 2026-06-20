@@ -1,5 +1,10 @@
 import Sidebar from "@/components/dashboard/Sidebar";
 import Topbar from "@/components/dashboard/Topbar";
+import { SidebarProvider } from "@/components/dashboard/SidebarProvider";
+import DashboardMain from "@/components/dashboard/DashboardMain";
+
+// Runs before paint so the sidebar opens at its saved width with no flash/jump.
+const sidebarScript = `(function(){try{var s=localStorage.getItem('sidebar');document.documentElement.setAttribute('data-sidebar',s==='collapsed'?'collapsed':'expanded');}catch(e){document.documentElement.setAttribute('data-sidebar','expanded');}})();`;
 
 export default function DashboardLayout({
   children,
@@ -7,14 +12,15 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="min-h-screen bg-canvas">
-      <Sidebar />
-      <main className="lg:ml-72 min-h-screen px-4 lg:px-8 py-6">
-        <div className="max-w-7xl mx-auto">
+    <SidebarProvider>
+      <script dangerouslySetInnerHTML={{ __html: sidebarScript }} />
+      <div className="min-h-screen bg-canvas">
+        <Sidebar />
+        <DashboardMain>
           <Topbar />
           {children}
-        </div>
-      </main>
-    </div>
+        </DashboardMain>
+      </div>
+    </SidebarProvider>
   );
 }

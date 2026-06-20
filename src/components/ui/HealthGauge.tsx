@@ -12,7 +12,10 @@ export default function HealthGauge({
   const circ = 2 * Math.PI * radius;
   const pct = Math.max(0, Math.min(100, score));
   const offset = circ - (pct / 100) * circ;
-  const color = pct >= 75 ? "text-success" : pct >= 50 ? "text-warning" : "text-danger";
+  // Full literal class strings so Tailwind's static scanner emits them.
+  const tone = pct >= 75 ? "success" : pct >= 50 ? "warning" : "danger";
+  const color = { success: "text-success", warning: "text-warning", danger: "text-danger" }[tone];
+  const pillBg = { success: "bg-success-soft", warning: "bg-warning-soft", danger: "bg-danger-soft" }[tone];
 
   return (
     <div className="flex flex-col items-center">
@@ -45,7 +48,7 @@ export default function HealthGauge({
           <span className="text-xs text-muted">/100</span>
         </div>
       </div>
-      <span className={`mt-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium bg-success-soft ${color}`}>
+      <span className={`mt-2 inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${pillBg} ${color}`}>
         {label}
       </span>
     </div>

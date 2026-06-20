@@ -1,32 +1,110 @@
 @import "tailwindcss";
-html {
-  scroll-behavior: smooth;
-}
+
+/* ---- Light theme (default) ---- */
 :root {
-  --bg: #f7f5ef;
-  --text: #111111;
-  --green: #4e6a45;
-  --green-dark: #18321b;
-  --border: #e4ded1;
-  --muted: #6b6b6b;
+  --canvas: #f7f5ef;
+  --surface: #ffffff;
+  --raised: #ffffff;
+  --sidebar: #fbf6ee;
+
+  --fg: #101418;
+  --fg-soft: #2c3e50;
+  --fg-muted: #6b6b6b;
+
+  --bronze: #b08d57;
+  --bronze-soft: rgba(176, 141, 87, 0.12);
+  --on-bronze: #101418;
+  --sand: #dcc9a6;
+
+  --line: #e4ded1;
+  --line-strong: #d6d0bd;
+
+  --success: #16a34a; --success-soft: #dcfce7;
+  --warning: #d97706; --warning-soft: #fef3c7;
+  --danger:  #dc2626; --danger-soft:  #fee2e2;
+  --info:    #2563eb; --info-soft:    #dbeafe;
+
+  --shadow-xs: 0 1px 2px rgba(15, 23, 42, 0.06);
+  --shadow-sm: 0 4px 16px rgba(10, 15, 23, 0.06);
+  --shadow-md: 0 12px 40px rgba(10, 15, 23, 0.10);
+  --shadow-lg: 0 30px 80px rgba(10, 15, 23, 0.18);
 }
+
+/* ---- Dark theme ---- */
+[data-theme="dark"] {
+  --canvas: #0a0d12;
+  --surface: #11161f;
+  --raised: #161c26;
+  --sidebar: #0d1219;
+
+  --fg: #f8f3ea;
+  --fg-soft: #d7cdbc;
+  --fg-muted: #9c9284;
+
+  --bronze: #c8a06a;
+  --bronze-soft: rgba(200, 160, 106, 0.18);
+  --on-bronze: #101418;
+  --sand: #3a3324;
+
+  --line: #2e3540;
+  --line-strong: #475569;
+
+  --success: #4ade80; --success-soft: rgba(74, 222, 128, 0.16);
+  --warning: #fbbf24; --warning-soft: rgba(251, 191, 36, 0.16);
+  --danger:  #f87171; --danger-soft:  rgba(248, 113, 113, 0.16);
+  --info:    #60a5fa; --info-soft:    rgba(96, 165, 250, 0.16);
+
+  --shadow-xs: 0 1px 2px rgba(0, 0, 0, 0.34);
+  --shadow-sm: 0 10px 30px rgba(0, 0, 0, 0.38);
+  --shadow-md: 0 24px 56px rgba(0, 0, 0, 0.50);
+  --shadow-lg: 0 30px 80px rgba(0, 0, 0, 0.60);
+}
+
+/* ---- Map semantic vars to Tailwind utilities (inline = re-themes at runtime) ---- */
+@theme inline {
+  --color-canvas: var(--canvas);
+  --color-surface: var(--surface);
+  --color-raised: var(--raised);
+  --color-sidebar: var(--sidebar);
+
+  --color-fg: var(--fg);
+  --color-fg-soft: var(--fg-soft);
+  --color-muted: var(--fg-muted);
+
+  --color-bronze: var(--bronze);
+  --color-bronze-soft: var(--bronze-soft);
+  --color-on-bronze: var(--on-bronze);
+  --color-sand: var(--sand);
+
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 20px;
+  --radius-2xl: 28px;
+}
+
+html { scroll-behavior: smooth; }
 
 body {
-  background: #f8fafc;
-}
-::-webkit-scrollbar {
-  width: 8px;
+  background: var(--canvas);
+  color: var(--fg);
 }
 
-::-webkit-scrollbar-track {
-  background: #101418;
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(176, 141, 87, 0.4);
-  border-radius: 999px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(176, 141, 87, 0.7);
-}
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--bronze-soft); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: var(--bronze); }

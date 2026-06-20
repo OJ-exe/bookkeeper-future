@@ -24,7 +24,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8">
       {/* Top band: main column (greeting + KPIs + quick actions) beside the tall Health/AI rail */}
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
         <div className="xl:col-span-8 space-y-6">
           <Greeting />
           <KpiRow />

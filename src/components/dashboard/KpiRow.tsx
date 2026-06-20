@@ -2,10 +2,10 @@ import { Wallet, ArrowDownToLine, ArrowUpFromLine, AlertCircle } from "lucide-re
 import StatCard from "@/components/ui/StatCard";
 
 const kpis = [
-  { icon: Wallet, label: "Cash Available", value: "₹0", sublabel: "Stable" },
-  { icon: ArrowDownToLine, label: "Receivables", value: "₹0", sublabel: "No Overdue" },
-  { icon: ArrowUpFromLine, label: "Payables", value: "₹0", sublabel: "Under Control" },
-  { icon: AlertCircle, label: "Tasks Need Attention", value: "0", sublabel: "All Good" },
+  { icon: Wallet, label: "Cash Available", value: "₹0", sublabel: "Stable", tone: "success" as const },
+  { icon: ArrowDownToLine, label: "Receivables", value: "₹0", sublabel: "No Overdue", tone: "info" as const },
+  { icon: ArrowUpFromLine, label: "Payables", value: "₹0", sublabel: "Under Control", tone: "warning" as const },
+  { icon: AlertCircle, label: "Tasks Need Attention", value: "0", sublabel: "All Good", tone: "bronze" as const },
 ];
 
 export default function KpiRow() {
@@ -18,6 +18,7 @@ export default function KpiRow() {
           label={k.label}
           value={k.value}
           sublabel={k.sublabel}
+          tone={k.tone}
         />
       ))}
     </div>

@@ -1,4 +1,3 @@
-import Topbar from "@/components/dashboard/Topbar";
 import MISFilterBar from "@/components/dashboard/MISFilterBar";
 import MISStatsGrid from "@/components/dashboard/MISStatsGrid";
 import QuickActions from "@/components/dashboard/QuickActions";
@@ -33,9 +32,6 @@ import Activity from "@/components/dashboard/Activity";
 export default function DashboardPage() {
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <Topbar />
-
       {/* MIS Filters */}
       <MISFilterBar />
 

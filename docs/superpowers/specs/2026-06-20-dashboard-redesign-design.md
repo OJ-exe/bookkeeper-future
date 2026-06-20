@@ -22,25 +22,31 @@ dashboard and an olive/bronze editorial marketing site, plus a brand palette swa
 (`#101418 / #2C3E50 / #B08D57 / #DCC9A6 / #FBF6EE`).
 
 **Decision:** Adopt the *structure and density* of the indigo dashboard mockups but render them in
-the **bronze/ink/cream brand palette** (light mode only for now). This keeps the product
-distinctive and tied to the marketing brand and the original orange heritage, rather than looking
-like generic indigo SaaS.
+the **bronze/ink/cream brand palette**, with **both light and dark themes** as first-class. This
+keeps the product distinctive and tied to the marketing brand and the original orange heritage,
+rather than looking like generic indigo SaaS.
+
+The current live app navigates via a floating bottom tab bar. The redesign **replaces that with the
+left sidebar** as the sole primary navigation for the console.
 
 This is an upgrade of an existing skeleton, not a rewrite. Existing routes, the recharts/lucide
 dependencies, and the sidebar nav structure are kept.
 
 ## Goals
 
-- One coherent, token-driven design system applied across the whole dashboard.
+- One coherent, token-driven design system applied across the whole dashboard, driving **both
+  light and dark themes** from the same token set.
+- **Every** dashboard component is redesigned to the new system — none left in the old style.
+- The floating bottom tab bar is replaced by the **left sidebar** as the console's primary nav.
 - Pages composed from a small set of reusable primitives, not bespoke markup.
 - Visual fidelity matching the redesign mockups (stat cards, charts, AI rail, health gauges,
-  status pills, onboarding strips), recolored to the brand palette.
+  status pills, onboarding strips), recolored to the brand palette, in both themes.
 - Fix the structural issues (duplicate layout, inconsistent tokens) as part of the work.
 
 ## Non-Goals (YAGNI)
 
-- Marketing/public landing site redesign (separate spec).
-- Dark mode (tokens will be structured to allow it later, but no dark theme is built now).
+- Marketing/public landing site redesign (separate spec). The theming system built here is
+  designed so the marketing site can inherit the same light/dark tokens in its later cycle.
 - Real data / backend wiring. Components use the existing mock/placeholder data shapes.
 - Auth, multi-company logic, or any new product features.
 
@@ -48,35 +54,54 @@ dependencies, and the sidebar nav structure are kept.
 
 ### Tokens (single source of truth)
 
-Defined in `globals.css` via Tailwind v4 `@theme`, replacing the current ad-hoc `:root` vars.
+Tokens are **semantic** (named by role, not by color) and defined as CSS custom properties in
+`globals.css`. Each token has a light value and a dark value; the active theme is selected by a
+`data-theme="light" | "dark"` attribute on `<html>`. Tailwind v4 `@theme inline` maps the semantic
+tokens to utilities so components reference roles (e.g. `bg-surface`, `text-muted`, `border-base`),
+never raw hex — which is what makes both themes work from one component tree.
 
-| Role | Value |
-|------|-------|
-| Canvas (app bg) | `#F7F5EF` (warm) |
-| Surface / cards | `#FFFFFF` |
-| Sidebar | `#FBF6EE` (cream) |
-| Text / ink (primary, primary buttons) | `#101418` |
-| Slate (secondary text/headings) | `#2C3E50` |
-| Muted | `#6B6B6B` |
-| Bronze (accent: active nav, links, focus, highlights) | `#B08D57` |
-| Bronze-soft (tint for active bg, chips) | bronze @ ~12% |
-| Sand | `#DCC9A6` |
-| Border | `#E4DED1` |
-| Success / Warning / Danger / Info | green / amber / red / blue, each with a soft tint |
+| Role | Light | Dark |
+|------|-------|------|
+| Canvas (app bg) | `#F7F5EF` (warm) | `#0A0D12` |
+| Surface / cards | `#FFFFFF` | `#11161F` |
+| Surface-raised (popovers, menus) | `#FFFFFF` | `#161C26` |
+| Sidebar | `#FBF6EE` (cream) | `#0D1219` |
+| Text (primary) | `#101418` | `#F8F3EA` (cream) |
+| Text-secondary | `#2C3E50` (slate) | `#D7CDBC` |
+| Text-muted | `#6B6B6B` | `#9C9284` |
+| Bronze (accent: active nav, links, focus, highlights) | `#B08D57` | `#C8A06A` (brightened) |
+| Bronze-soft (tint for active bg, chips) | bronze @ ~12% | bronze @ ~18% |
+| Sand | `#DCC9A6` | `#3A3324` |
+| Border | `#E4DED1` | `#2E3540` |
+| Success / Warning / Danger / Info | green / amber / red / blue, each + soft tint | brightened equivalents + soft tint |
+| Text on bronze (button text) | `#101418` | `#101418` |
 
-Plus scales for **radius** (sm→2xl), **shadow** (xs→lg, warm-tinted), **spacing**, and a **type
-scale**. Font family: **Inter** (matches mockups), with system fallbacks.
+Primary buttons use **ink** in light mode and a **cream/bronze** treatment in dark mode (so they
+stay legible). Shadows are warm-tinted and lighter/insettier in dark mode.
+
+Plus scales for **radius** (sm→2xl), **shadow** (xs→lg), **spacing**, and a **type scale**. Font
+family: **Inter** (matches mockups), with system fallbacks.
+
+### Theming mechanism
+
+- A `ThemeProvider` (client) reads/writes `data-theme` on `<html>`, persists the choice to
+  `localStorage`, and defaults to the OS preference (`prefers-color-scheme`) on first visit.
+- A small inline script in the root layout sets `data-theme` before first paint to avoid a
+  flash of the wrong theme.
+- The topbar sun/moon toggle (shown in the mockups) flips the theme.
+- Recharts colors are read from the resolved CSS variables so charts re-theme too.
 
 ### App shell
 
 - **Remove** `components/dashboard/DashboardLayout.tsx`. Keep one canonical
   `app/dashboard/layout.tsx` (sidebar + `<main>` with consistent max width and padding).
-- **Sidebar** (`Sidebar.tsx`): cream background, BF logo mark + wordmark, grouped nav (existing
+- **Sidebar** (`Sidebar.tsx`): the console's sole primary navigation (replacing the old floating
+  bottom tab bar). Themed sidebar background, BF logo mark + wordmark, grouped nav (existing
   structure: Dashboard, Business Command, FINANCE, CRM, BILLING, HR, AI & INSIGHTS, SETTINGS),
   bronze active state on bronze-soft background, pinned Business Health gauge at the bottom.
-  Collapsible / hidden on smaller breakpoints.
-- **Topbar** (`Topbar.tsx`): global search with ⌘K affordance, refresh, +new, notifications with
-  badge, company switcher, user avatar. No theme toggle (light mode only).
+  Collapsible / off-canvas drawer on smaller breakpoints.
+- **Topbar** (`Topbar.tsx`): global search with ⌘K affordance, **theme toggle (sun/moon)**,
+  refresh, +new, notifications with badge, company switcher, user avatar.
 
 ### Reusable primitives (`components/ui/`)
 
@@ -108,8 +133,10 @@ OnboardingStrip (bottom)
 
 ## Rollout (phased, each phase independently reviewable)
 
-1. **Foundation** — tokens in `globals.css`/`@theme`, app shell (single layout, sidebar, topbar),
-   and all `components/ui/` primitives. No page is final yet, but everything downstream is fast.
+1. **Foundation** — semantic light/dark tokens in `globals.css` + Tailwind `@theme inline`,
+   `ThemeProvider` + no-flash inline script + topbar toggle, app shell (single layout, sidebar
+   replacing the bottom tab bar, topbar), and all `components/ui/` primitives built theme-aware.
+   No page is final yet, but everything downstream is fast and dual-theme by construction.
 2. **Dashboard home** (flagship, mockup #1) — greeting header, KPI stat row, Business Health,
    AI Copilot rail, cash-flow + revenue-vs-expense charts, outstanding invoices donut, setup
    workbench, today's focus, recent activity, insights.
@@ -129,7 +156,10 @@ OnboardingStrip (bottom)
 ## Success criteria
 
 - All dashboard pages render from shared primitives with the bronze/ink/cream system.
-- No remaining references to the duplicate layout or stray `slate-*` brand colors where a token
-  should be used.
-- Dashboard home visually matches mockup #1 at desktop width.
+- **Every page works in both light and dark mode**; the topbar toggle flips themes with no
+  flash on reload, and charts re-theme with the palette.
+- The sidebar is the only primary nav; the old bottom tab bar is gone.
+- No remaining references to the duplicate layout, raw hex, or stray `slate-*` colors where a
+  semantic token should be used.
+- Dashboard home visually matches mockup #1 at desktop width in both themes.
 - `npm run build` and `npm run lint` pass.

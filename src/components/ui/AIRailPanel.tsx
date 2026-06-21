@@ -3,10 +3,12 @@ import { Sparkles, ArrowUp } from "lucide-react";
 export default function AIRailPanel({
   title = "AI Copilot",
   greeting = "How can I help you today?",
+  placeholder = "Ask anything…",
   prompts,
 }: {
   title?: string;
   greeting?: string;
+  placeholder?: string;
   prompts: string[];
 }) {
   return (
@@ -29,7 +31,7 @@ export default function AIRailPanel({
       <div className="mt-4 flex items-center gap-2 rounded-xl border border-line px-3 py-2">
         <input
           className="w-full bg-transparent text-sm outline-none text-fg placeholder:text-muted"
-          placeholder="Ask anything…"
+          placeholder={placeholder}
         />
         <button className="text-bronze" aria-label="Send">
           <ArrowUp size={16} />

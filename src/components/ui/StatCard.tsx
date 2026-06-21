@@ -10,11 +10,17 @@ const chipTone: Record<Tone, string> = {
   danger: "bg-danger-soft text-danger",
 };
 
+const sublabelColor: Record<"success" | "muted", string> = {
+  success: "text-success",
+  muted: "text-muted",
+};
+
 export default function StatCard({
   icon: Icon,
   label,
   value,
   sublabel,
+  sublabelTone = "success",
   trend,
   tone = "bronze",
 }: {
@@ -22,6 +28,7 @@ export default function StatCard({
   label: string;
   value: string;
   sublabel?: string;
+  sublabelTone?: "success" | "muted";
   trend?: { dir: "up" | "down"; text: string };
   tone?: Tone;
 }) {
@@ -43,7 +50,9 @@ export default function StatCard({
       <div className="mt-auto pt-5">
         <h3 className="text-2xl font-bold text-fg">{value}</h3>
         <p className="text-muted text-sm mt-1">{label}</p>
-        {sublabel && <p className="text-xs text-success mt-2 font-medium">{sublabel}</p>}
+        {sublabel && (
+          <p className={`text-xs mt-2 font-medium ${sublabelColor[sublabelTone]}`}>{sublabel}</p>
+        )}
       </div>
     </div>
   );

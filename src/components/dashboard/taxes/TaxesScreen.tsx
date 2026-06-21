@@ -199,6 +199,7 @@ export default function TaxesScreen() {
           label="Net GST"
           value="₹1,24,000"
           sublabel="Payable"
+          sublabelTone="muted"
           tone="warning"
           trend={{ dir: "up", text: "15% vs last period" }}
         />
@@ -207,6 +208,7 @@ export default function TaxesScreen() {
           label="Filing Status"
           value="Ready"
           sublabel="June 2026 · Due in 12 days"
+          sublabelTone="muted"
           tone="bronze"
         />
       </div>
@@ -319,6 +321,7 @@ export default function TaxesScreen() {
           <AIRailPanel
             title="AI Tax Copilot"
             greeting="Ask anything about taxes"
+            placeholder="Ask anything about taxes…"
             prompts={copilotPrompts}
           />
         </div>

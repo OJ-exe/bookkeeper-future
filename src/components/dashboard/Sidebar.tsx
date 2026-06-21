@@ -20,6 +20,7 @@ import {
   Sparkles,
   BarChart3,
   Settings,
+  Percent,
   PanelLeftClose,
   PanelLeftOpen,
 } from "lucide-react";
@@ -63,6 +64,10 @@ const menu: Entry[] = [
       { name: "Employees", href: "/dashboard/employees", icon: UserCog },
       { name: "Payroll", href: "/dashboard/payroll", icon: BadgeDollarSign },
     ],
+  },
+  {
+    heading: "TAX CONTROL",
+    items: [{ name: "Taxes", href: "/dashboard/taxes", icon: Percent }],
   },
   {
     heading: "AI & INSIGHTS",

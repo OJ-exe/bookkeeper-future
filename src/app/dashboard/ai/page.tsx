@@ -1,8 +1,5 @@
+import AICopilotScreen from "@/components/dashboard/ai/AICopilotScreen";
+
 export default function AiPage() {
-  return (
-    <div className="text-muted">
-      <h1 className="text-2xl font-bold text-fg mb-2">Ai</h1>
-      <p>This page is being redesigned.</p>
-    </div>
-  );
+  return <AICopilotScreen />;
 }

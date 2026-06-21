@@ -526,7 +526,7 @@ export default function CustomersScreen() {
             <h2 className="text-base font-semibold text-fg">Quick Actions</h2>
             <div className="mt-3 space-y-1">
               {quickActions.map((a) => {
-                const Icon = a.label === "Customer Analysis (AI)" ? Sparkles : a.icon;
+                const Icon = a.icon;
                 return (
                   <button
                     key={a.label}

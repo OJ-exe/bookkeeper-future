@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import {
   Sparkles,
   Plus,
@@ -58,6 +58,13 @@ export default function AICopilotScreen() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [activeSession, setActiveSession] = useState<string | null>(null);
+  const threadEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (messages.length > 0) {
+      threadEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    }
+  }, [messages]);
 
   function send(text: string) {
     const trimmed = text.trim();
@@ -212,6 +219,7 @@ export default function AICopilotScreen() {
                     </div>
                   )
                 )}
+                <div ref={threadEndRef} />
               </div>
             )}
           </div>
@@ -231,7 +239,10 @@ export default function AICopilotScreen() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === "Enter") send(input);
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.preventDefault();
+                      send(input);
+                    }
                   }}
                   placeholder="Ask Bookkeeper anything…"
                   className="w-full bg-transparent px-1 text-sm text-fg outline-none placeholder:text-muted"

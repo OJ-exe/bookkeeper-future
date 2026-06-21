@@ -48,8 +48,8 @@ export default function AddTransactionModal({
     >
       <form id="add-transaction-form" onSubmit={handleSubmit} className="space-y-4">
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-fg-soft">Account</label>
-          <select defaultValue={bankAccounts[0].name} className={fieldClass}>
+          <label htmlFor="txn-account" className="mb-1.5 block text-sm font-medium text-fg-soft">Account</label>
+          <select id="txn-account" defaultValue={bankAccounts[0].name} className={fieldClass}>
             {bankAccounts.map((a) => (
               <option key={a.name} value={a.name}>
                 {a.name} ({a.accountNo})
@@ -60,12 +60,12 @@ export default function AddTransactionModal({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-fg-soft">Date</label>
-            <input type="date" className={fieldClass} />
+            <label htmlFor="txn-date" className="mb-1.5 block text-sm font-medium text-fg-soft">Date</label>
+            <input id="txn-date" type="date" className={fieldClass} />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-fg-soft">Type</label>
-            <select defaultValue="Inflow" className={fieldClass}>
+            <label htmlFor="txn-type" className="mb-1.5 block text-sm font-medium text-fg-soft">Type</label>
+            <select id="txn-type" defaultValue="Inflow" className={fieldClass}>
               <option value="Inflow">Inflow</option>
               <option value="Outflow">Outflow</option>
             </select>
@@ -73,10 +73,11 @@ export default function AddTransactionModal({
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-fg-soft">
+          <label htmlFor="txn-description" className="mb-1.5 block text-sm font-medium text-fg-soft">
             Description <span className="text-danger">*</span>
           </label>
           <input
+            id="txn-description"
             type="text"
             required
             value={description}
@@ -88,14 +89,15 @@ export default function AddTransactionModal({
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-fg-soft">Reference</label>
-            <input type="text" placeholder="NEFT / UTR / cheque no." className={fieldClass} />
+            <label htmlFor="txn-reference" className="mb-1.5 block text-sm font-medium text-fg-soft">Reference</label>
+            <input id="txn-reference" type="text" placeholder="NEFT / UTR / cheque no." className={fieldClass} />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-fg-soft">
+            <label htmlFor="txn-amount" className="mb-1.5 block text-sm font-medium text-fg-soft">
               Amount <span className="text-danger">*</span>
             </label>
             <input
+              id="txn-amount"
               type="text"
               inputMode="decimal"
               required
@@ -108,8 +110,9 @@ export default function AddTransactionModal({
         </div>
 
         <div>
-          <label className="mb-1.5 block text-sm font-medium text-fg-soft">Notes</label>
+          <label htmlFor="txn-notes" className="mb-1.5 block text-sm font-medium text-fg-soft">Notes</label>
           <textarea
+            id="txn-notes"
             rows={3}
             placeholder="Add notes or context…"
             className={`${fieldClass} resize-none`}

@@ -361,19 +361,20 @@ export default function BankingScreen() {
       >
         <form id="add-bank-form" onSubmit={handleAddBank} className="space-y-4">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-fg-soft">Bank Name</label>
-            <input type="text" placeholder="e.g. HDFC Bank" className={fieldClass} />
+            <label htmlFor="bank-name" className="mb-1.5 block text-sm font-medium text-fg-soft">Bank Name</label>
+            <input id="bank-name" type="text" placeholder="e.g. HDFC Bank" className={fieldClass} />
           </div>
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-fg-soft">Account Number</label>
-            <input type="text" placeholder="e.g. ••1234" className={fieldClass} />
+            <label htmlFor="bank-account-no" className="mb-1.5 block text-sm font-medium text-fg-soft">Account Number</label>
+            <input id="bank-account-no" type="text" placeholder="e.g. ••1234" className={fieldClass} />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-fg-soft">
+              <label htmlFor="bank-opening-balance" className="mb-1.5 block text-sm font-medium text-fg-soft">
                 Opening Balance
               </label>
               <input
+                id="bank-opening-balance"
                 type="text"
                 inputMode="decimal"
                 placeholder="₹0.00"
@@ -381,8 +382,8 @@ export default function BankingScreen() {
               />
             </div>
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-fg-soft">Linked Ledger</label>
-              <select defaultValue={bankAccounts[0].ledger} className={fieldClass}>
+              <label htmlFor="bank-ledger" className="mb-1.5 block text-sm font-medium text-fg-soft">Linked Ledger</label>
+              <select id="bank-ledger" defaultValue={bankAccounts[0].ledger} className={fieldClass}>
                 {bankAccounts.map((a) => (
                   <option key={a.ledger} value={a.ledger}>
                     {a.ledger}

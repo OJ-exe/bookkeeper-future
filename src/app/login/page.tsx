@@ -24,7 +24,7 @@ export default function LoginPage() {
       {/* Brand panel */}
       <aside className="relative hidden overflow-hidden bg-bronze lg:flex">
         <div className="pointer-events-none absolute -left-24 top-16 h-96 w-96 rounded-full bg-on-bronze/10 blur-3xl" />
-        <div className="pointer-events-none absolute -right-16 bottom-0 h-[28rem] w-[28rem] rounded-full bg-canvas/10 blur-3xl" />
+        <div className="pointer-events-none absolute -right-16 bottom-0 h-[28rem] w-[28rem] rounded-full bg-on-bronze/5 blur-3xl" />
 
         <div className="relative z-10 flex w-full flex-col justify-between p-12 text-on-bronze">
           <div className="flex items-center gap-3">

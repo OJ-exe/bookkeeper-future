@@ -33,11 +33,11 @@ import AddTransactionModal from "@/components/dashboard/banking/AddTransactionMo
 
 import {
   bankAccounts,
-  bankTxns,
   bankTxnTabs,
   type BankTxn,
   type TxnStatus,
 } from "@/data/banking";
+import { useCollection } from "@/lib/store/dataStore";
 
 const statusTone: Record<TxnStatus, "success" | "warning" | "neutral"> = {
   Matched: "success",
@@ -69,6 +69,7 @@ function tabPredicate(tab: string, txn: BankTxn): boolean {
 }
 
 export default function BankingScreen() {
+  const { items: bankTxns, add, remove } = useCollection<BankTxn>("bankTxns");
   const [tab, setTab] = useState("All Transactions");
   const [query, setQuery] = useState("");
   const [account, setAccount] = useState("All");
@@ -340,7 +341,11 @@ export default function BankingScreen() {
         </div>
       </Card>
 
-      <AddTransactionModal open={txnOpen} onClose={() => setTxnOpen(false)} />
+      <AddTransactionModal
+        open={txnOpen}
+        onClose={() => setTxnOpen(false)}
+        onCreate={(txn) => add(txn)}
+      />
 
       {/* Add Bank modal */}
       <Modal
@@ -407,7 +412,13 @@ export default function BankingScreen() {
             <Button variant="outline" onClick={() => setDeleteTxn(null)}>
               Cancel
             </Button>
-            <Button className="bg-danger text-white" onClick={() => setDeleteTxn(null)}>
+            <Button
+              className="bg-danger text-white"
+              onClick={() => {
+                if (deleteTxn) remove(deleteTxn);
+                setDeleteTxn(null);
+              }}
+            >
               Delete
             </Button>
           </>

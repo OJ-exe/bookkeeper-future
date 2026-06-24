@@ -16,6 +16,7 @@ import {
   Eye,
   FileDown,
   RefreshCw,
+  Trash2,
   ChevronLeft,
   ChevronRight,
 } from "lucide-react";
@@ -25,16 +26,17 @@ import Button from "@/components/ui/Button";
 import StatCard from "@/components/ui/StatCard";
 import StatusPill from "@/components/ui/StatusPill";
 import Card from "@/components/ui/Card";
+import Modal from "@/components/ui/Modal";
 import { Menu, MenuItem } from "@/components/ui/Menu";
 
 import RunPayrollModal from "@/components/dashboard/payroll/RunPayrollModal";
 
 import {
-  payrollRuns,
   payrollTabs,
   type PayrollRun,
   type PayrollStatus,
 } from "@/data/payroll";
+import { useCollection } from "@/lib/store/dataStore";
 
 const statusTone: Record<PayrollStatus, "success" | "info" | "warning" | "neutral"> = {
   Paid: "success",
@@ -59,9 +61,11 @@ function tabPredicate(tab: string, run: PayrollRun): boolean {
 }
 
 export default function PayrollScreen() {
+  const { items: payrollRuns, add, remove } = useCollection<PayrollRun>("payroll");
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState("All Runs");
   const [runOpen, setRunOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<PayrollRun | null>(null);
 
   const q = query.trim().toLowerCase();
   const filtered = payrollRuns.filter((run) => {
@@ -234,6 +238,9 @@ export default function PayrollScreen() {
                         <MenuItem icon={Eye}>View Workings</MenuItem>
                         <MenuItem icon={FileDown}>Download Payslips</MenuItem>
                         <MenuItem icon={RefreshCw}>Reprocess</MenuItem>
+                        <MenuItem icon={Trash2} danger onClick={() => setDeleteTarget(run)}>
+                          Delete
+                        </MenuItem>
                       </Menu>
                     </td>
                   </tr>
@@ -271,7 +278,43 @@ export default function PayrollScreen() {
         </div>
       </Card>
 
-      <RunPayrollModal open={runOpen} onClose={() => setRunOpen(false)} />
+      <RunPayrollModal
+        open={runOpen}
+        onClose={() => setRunOpen(false)}
+        onCreate={(run) => add(run)}
+      />
+
+      <Modal
+        open={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        title="Delete payroll run?"
+        description="This action cannot be undone."
+        size="sm"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>
+              Cancel
+            </Button>
+            <button
+              type="button"
+              onClick={() => {
+                if (deleteTarget) remove(deleteTarget);
+                setDeleteTarget(null);
+              }}
+              className="h-11 px-5 rounded-xl bg-danger text-white text-sm font-medium hover:opacity-90 transition"
+            >
+              Delete
+            </button>
+          </>
+        }
+      >
+        <p className="text-sm text-fg-soft">
+          Payroll run{" "}
+          <span className="font-semibold text-fg">{deleteTarget?.id}</span> for{" "}
+          <span className="font-semibold text-fg">{deleteTarget?.period}</span> will be
+          permanently removed.
+        </p>
+      </Modal>
     </div>
   );
 }

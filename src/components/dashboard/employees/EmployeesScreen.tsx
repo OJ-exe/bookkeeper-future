@@ -33,12 +33,12 @@ import { Menu, MenuItem } from "@/components/ui/Menu";
 import AddEmployeeModal from "@/components/dashboard/employees/AddEmployeeModal";
 
 import {
-  employees,
   employeeTabs,
   departments,
   type Employee,
   type EmployeeStatus,
 } from "@/data/employees";
+import { useCollection } from "@/lib/store/dataStore";
 
 const statusTone: Record<EmployeeStatus, "success" | "warning" | "neutral"> = {
   Active: "success",
@@ -64,6 +64,7 @@ function tabPredicate(tab: string, e: Employee): boolean {
 const departmentOptions = ["All Departments", ...departments];
 
 export default function EmployeesScreen() {
+  const { items: employees, add, remove } = useCollection<Employee>("employees");
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState("All Employees");
   const [department, setDepartment] = useState("All Departments");
@@ -300,7 +301,11 @@ export default function EmployeesScreen() {
       </Card>
 
       {/* Modals */}
-      <AddEmployeeModal open={addOpen} onClose={() => setAddOpen(false)} />
+      <AddEmployeeModal
+        open={addOpen}
+        onClose={() => setAddOpen(false)}
+        onCreate={(employee) => add(employee)}
+      />
 
       <Modal
         open={deactivateTarget !== null}
@@ -315,7 +320,10 @@ export default function EmployeesScreen() {
             </Button>
             <button
               type="button"
-              onClick={() => setDeactivateTarget(null)}
+              onClick={() => {
+                if (deactivateTarget) remove(deactivateTarget);
+                setDeactivateTarget(null);
+              }}
               className="h-11 px-5 rounded-xl bg-danger text-white text-sm font-medium hover:opacity-90 transition"
             >
               Deactivate

@@ -4,30 +4,72 @@ import { useState, type FormEvent } from "react";
 
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
-import { departments } from "@/data/employees";
+import { departments, type Department, type Employee } from "@/data/employees";
 
 const inputClass =
   "bg-canvas border border-line rounded-xl px-3 py-2 text-sm text-fg outline-none focus:border-bronze";
 const labelClass = "text-sm font-medium text-fg-soft";
 
+function initialsOf(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return (parts[0][0] + parts[1][0]).toUpperCase();
+}
+
 export default function AddEmployeeModal({
   open,
   onClose,
+  onCreate,
 }: {
   open: boolean;
   onClose: () => void;
+  onCreate: (employee: Employee) => void;
 }) {
   const [name, setName] = useState("");
+  const [department, setDepartment] = useState<Department>(departments[0]);
+  const [designation, setDesignation] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [ctc, setCtc] = useState("");
+
+  function reset() {
+    setName("");
+    setDepartment(departments[0]);
+    setDesignation("");
+    setEmail("");
+    setPhone("");
+    setCtc("");
+  }
 
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (name.trim() === "") return;
+    onCreate({
+      code: `EMP-${Math.floor(100 + Math.random() * 900)}`,
+      name: name.trim(),
+      initials: initialsOf(name),
+      department,
+      designation: designation.trim() || "—",
+      email: email.trim() || "—",
+      phone: phone.trim() || "—",
+      ctc: ctc.trim() || "—",
+      status: "Active",
+      joinedNew: true,
+    });
+    reset();
+    onClose();
+  }
+
+  function handleClose() {
+    reset();
     onClose();
   }
 
   return (
     <Modal
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       title="Add Employee"
       description="Add a new employee to your master data."
       size="lg"
@@ -52,7 +94,12 @@ export default function AddEmployeeModal({
             <label htmlFor="emp-department" className={labelClass}>
               Department
             </label>
-            <select id="emp-department" className={inputClass} defaultValue={departments[0]}>
+            <select
+              id="emp-department"
+              className={inputClass}
+              value={department}
+              onChange={(e) => setDepartment(e.target.value as Department)}
+            >
               {departments.map((d) => (
                 <option key={d} value={d}>
                   {d}
@@ -65,7 +112,13 @@ export default function AddEmployeeModal({
             <label htmlFor="emp-designation" className={labelClass}>
               Designation
             </label>
-            <input id="emp-designation" placeholder="Sales Manager" className={inputClass} />
+            <input
+              id="emp-designation"
+              value={designation}
+              onChange={(e) => setDesignation(e.target.value)}
+              placeholder="Sales Manager"
+              className={inputClass}
+            />
           </div>
 
           <div className="flex flex-col gap-1.5">
@@ -75,6 +128,8 @@ export default function AddEmployeeModal({
             <input
               id="emp-email"
               type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
               placeholder="rajesh.kumar@company.com"
               className={inputClass}
             />
@@ -84,20 +139,32 @@ export default function AddEmployeeModal({
             <label htmlFor="emp-phone" className={labelClass}>
               Phone
             </label>
-            <input id="emp-phone" placeholder="+91 98765 43210" className={inputClass} />
+            <input
+              id="emp-phone"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              placeholder="+91 98765 43210"
+              className={inputClass}
+            />
           </div>
 
           <div className="flex flex-col gap-1.5 sm:col-span-2">
             <label htmlFor="emp-ctc" className={labelClass}>
               CTC
             </label>
-            <input id="emp-ctc" placeholder="₹9.6L" className={inputClass} />
+            <input
+              id="emp-ctc"
+              value={ctc}
+              onChange={(e) => setCtc(e.target.value)}
+              placeholder="₹9.6L"
+              className={inputClass}
+            />
           </div>
         </div>
       </form>
 
       <div className="mt-6 flex justify-end gap-2">
-        <Button variant="outline" type="button" onClick={onClose}>
+        <Button variant="outline" type="button" onClick={handleClose}>
           Cancel
         </Button>
         <Button

@@ -193,10 +193,11 @@ const getStarted: {
 ];
 
 export default function CustomersScreen() {
-  const { items: customers, add, remove, setItems } = useCollection<Customer>("customers");
+  const { items: customers, add, remove, update, setItems } = useCollection<Customer>("customers");
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState("All Customers");
   const [createOpen, setCreateOpen] = useState(() => consumeCreate("customers"));
+  const [editTarget, setEditTarget] = useState<Customer | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Customer | null>(null);
 
   const q = query.trim().toLowerCase();
@@ -493,7 +494,9 @@ export default function CustomersScreen() {
                             }
                           >
                             <MenuItem icon={Eye}>View</MenuItem>
-                            <MenuItem icon={Pencil}>Edit</MenuItem>
+                            <MenuItem icon={Pencil} onClick={() => setEditTarget(c)}>
+                              Edit
+                            </MenuItem>
                             <MenuItem icon={FileText}>Send Statement</MenuItem>
                             <MenuItem icon={Trash2} danger onClick={() => setDeleteTarget(c)}>
                               Delete
@@ -641,9 +644,15 @@ export default function CustomersScreen() {
 
       {/* Modals */}
       <CreateCustomerModal
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
+        key={editTarget ? `edit-${editTarget.name}` : "create"}
+        open={createOpen || editTarget !== null}
+        editing={editTarget}
+        onClose={() => {
+          setCreateOpen(false);
+          setEditTarget(null);
+        }}
         onCreate={(customer) => add(customer)}
+        onUpdate={(item, patch) => update(item, patch)}
       />
 
       <Modal

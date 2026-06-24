@@ -17,21 +17,31 @@ function initialsOf(name: string) {
   return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
+// "—" is used as a placeholder for empty fields; show it as blank when editing.
+function unblank(v: string | undefined) {
+  return v && v !== "—" ? v : "";
+}
+
 export default function CreateCustomerModal({
   open,
   onClose,
   onCreate,
+  editing,
+  onUpdate,
 }: {
   open: boolean;
   onClose: () => void;
   onCreate: (customer: Customer) => void;
+  editing?: Customer | null;
+  onUpdate?: (item: Customer, patch: Partial<Customer>) => void;
 }) {
-  const [name, setName] = useState("");
-  const [gstin, setGstin] = useState("");
-  const [contactName, setContactName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [city, setCity] = useState("");
+  const isEdit = !!editing;
+  const [name, setName] = useState(editing?.name ?? "");
+  const [gstin, setGstin] = useState(unblank(editing?.gstin));
+  const [contactName, setContactName] = useState(unblank(editing?.contactName));
+  const [email, setEmail] = useState(unblank(editing?.email));
+  const [phone, setPhone] = useState(unblank(editing?.phone));
+  const [city, setCity] = useState(unblank(editing?.city));
 
   function reset() {
     setName("");
@@ -45,6 +55,19 @@ export default function CreateCustomerModal({
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (name.trim() === "") return;
+    if (isEdit && editing && onUpdate) {
+      onUpdate(editing, {
+        name: name.trim(),
+        initials: initialsOf(name),
+        gstin: gstin.trim() || "—",
+        city: city.trim() || "—",
+        contactName: contactName.trim() || "—",
+        email: email.trim() || "—",
+        phone: phone.trim() || "—",
+      });
+      onClose();
+      return;
+    }
     onCreate({
       name: name.trim(),
       initials: initialsOf(name),
@@ -66,7 +89,7 @@ export default function CreateCustomerModal({
   }
 
   function handleClose() {
-    reset();
+    if (!isEdit) reset();
     onClose();
   }
 
@@ -74,8 +97,12 @@ export default function CreateCustomerModal({
     <Modal
       open={open}
       onClose={handleClose}
-      title="Create Customer"
-      description="Add a new customer to your master data."
+      title={isEdit ? "Edit Customer" : "Create Customer"}
+      description={
+        isEdit
+          ? "Update this customer's master data."
+          : "Add a new customer to your master data."
+      }
       size="lg"
     >
       <form id="create-customer-form" onSubmit={handleSubmit}>
@@ -172,7 +199,7 @@ export default function CreateCustomerModal({
           form="create-customer-form"
           disabled={name.trim() === ""}
         >
-          Create Customer
+          {isEdit ? "Save Changes" : "Create Customer"}
         </Button>
       </div>
     </Modal>

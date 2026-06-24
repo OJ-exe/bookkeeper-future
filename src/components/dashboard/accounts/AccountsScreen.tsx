@@ -40,12 +40,12 @@ import AccountInsights from "@/components/dashboard/accounts/AccountInsights";
 import CreateAccountModal from "@/components/dashboard/accounts/CreateAccountModal";
 
 import {
-  accounts,
   accountTree,
   typeChips,
   type Account,
   type AccountType,
 } from "@/data/accounts";
+import { useCollection } from "@/lib/store/dataStore";
 
 const typeIcon: Record<AccountType, LucideIcon> = {
   Asset: Wallet,
@@ -85,6 +85,7 @@ function chipPredicate(chip: string, a: Account): boolean {
 }
 
 export default function AccountsScreen() {
+  const { items: accounts, add, remove } = useCollection<Account>("accounts");
   const [query, setQuery] = useState("");
   const [chip, setChip] = useState("All Types");
   const [group, setGroup] = useState<string | null>(null);
@@ -361,7 +362,11 @@ export default function AccountsScreen() {
       </div>
 
       {/* Modals */}
-      <CreateAccountModal open={createOpen} onClose={() => setCreateOpen(false)} />
+      <CreateAccountModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreate={(account) => add(account)}
+      />
 
       <Modal
         open={deleteTarget !== null}
@@ -376,7 +381,10 @@ export default function AccountsScreen() {
             </Button>
             <button
               type="button"
-              onClick={() => setDeleteTarget(null)}
+              onClick={() => {
+                if (deleteTarget) remove(deleteTarget);
+                setDeleteTarget(null);
+              }}
               className="h-11 px-5 rounded-xl bg-danger text-white text-sm font-medium hover:opacity-90 transition"
             >
               Delete

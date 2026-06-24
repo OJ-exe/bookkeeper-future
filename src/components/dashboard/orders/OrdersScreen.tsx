@@ -19,6 +19,7 @@ import {
   FileText,
   Pencil,
   Ban,
+  Trash2,
 } from "lucide-react";
 
 import PageHeader from "@/components/ui/PageHeader";
@@ -26,11 +27,13 @@ import Button from "@/components/ui/Button";
 import StatCard from "@/components/ui/StatCard";
 import StatusPill from "@/components/ui/StatusPill";
 import Card from "@/components/ui/Card";
+import Modal from "@/components/ui/Modal";
 import { Menu, MenuItem, MenuLabel, MenuDivider } from "@/components/ui/Menu";
 
 import CreateOrderModal from "@/components/dashboard/orders/CreateOrderModal";
 
-import { orders, orderTabs, type Order, type OrderStatus } from "@/data/orders";
+import { orderTabs, type Order, type OrderStatus } from "@/data/orders";
+import { useCollection } from "@/lib/store/dataStore";
 
 const statusTone: Record<OrderStatus, "success" | "warning" | "danger" | "info" | "neutral"> = {
   Open: "info",
@@ -60,10 +63,12 @@ function tabPredicate(tab: string, order: Order): boolean {
 }
 
 export default function OrdersScreen() {
+  const { items: orders, add, remove } = useCollection<Order>("orders");
   const [tab, setTab] = useState("All");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [createOpen, setCreateOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Order | null>(null);
 
   const q = query.trim().toLowerCase();
   const filtered = orders.filter((order) => {
@@ -307,8 +312,11 @@ export default function OrdersScreen() {
                           <MenuItem icon={Eye}>View</MenuItem>
                           <MenuItem icon={FileText}>Convert to Invoice</MenuItem>
                           <MenuItem icon={Pencil}>Edit</MenuItem>
-                          <MenuItem icon={Ban} danger>
+                          <MenuItem icon={Ban} danger onClick={() => setDeleteTarget(order)}>
                             Cancel
+                          </MenuItem>
+                          <MenuItem icon={Trash2} danger onClick={() => setDeleteTarget(order)}>
+                            Delete
                           </MenuItem>
                         </Menu>
                       </td>
@@ -351,7 +359,42 @@ export default function OrdersScreen() {
         </div>
       </Card>
 
-      <CreateOrderModal open={createOpen} onClose={() => setCreateOpen(false)} />
+      <CreateOrderModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreate={(order) => add(order)}
+      />
+
+      <Modal
+        open={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        title="Delete order?"
+        description="This action cannot be undone."
+        size="sm"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>
+              Cancel
+            </Button>
+            <button
+              type="button"
+              onClick={() => {
+                if (deleteTarget) remove(deleteTarget);
+                setDeleteTarget(null);
+              }}
+              className="h-11 px-5 rounded-xl bg-danger text-white text-sm font-medium hover:opacity-90 transition"
+            >
+              Delete
+            </button>
+          </>
+        }
+      >
+        <p className="text-sm text-fg-soft">
+          Are you sure you want to delete{" "}
+          <span className="font-semibold text-fg">{deleteTarget?.number}</span>? This order will no
+          longer be accessible.
+        </p>
+      </Modal>
     </div>
   );
 }

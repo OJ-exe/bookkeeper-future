@@ -33,12 +33,12 @@ import { Menu, MenuItem, MenuLabel, MenuDivider } from "@/components/ui/Menu";
 import RecordPaymentModal from "@/components/dashboard/payments/RecordPaymentModal";
 
 import {
-  payments,
   paymentTabs,
   type Payment,
   type PaymentStatus,
   type PaymentDirection,
 } from "@/data/payments";
+import { useCollection } from "@/lib/store/dataStore";
 
 const statusTone: Record<PaymentStatus, "success" | "warning" | "danger" | "info" | "neutral"> = {
   Completed: "success",
@@ -77,6 +77,7 @@ function tabPredicate(tab: string, payment: Payment): boolean {
 }
 
 export default function PaymentsScreen() {
+  const { items: payments, add, remove } = useCollection<Payment>("payments");
   const [tab, setTab] = useState("All");
   const [query, setQuery] = useState("");
   const [method, setMethod] = useState("All Methods");
@@ -336,7 +337,11 @@ export default function PaymentsScreen() {
         </div>
       </Card>
 
-      <RecordPaymentModal open={createOpen} onClose={() => setCreateOpen(false)} />
+      <RecordPaymentModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreate={(payment) => add(payment)}
+      />
 
       <Modal
         open={deleteTarget !== null}
@@ -351,7 +356,10 @@ export default function PaymentsScreen() {
             </Button>
             <button
               type="button"
-              onClick={() => setDeleteTarget(null)}
+              onClick={() => {
+                if (deleteTarget) remove(deleteTarget);
+                setDeleteTarget(null);
+              }}
               className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-danger px-5 text-sm font-medium text-white shadow-[var(--shadow-xs)] transition hover:opacity-90"
             >
               Delete

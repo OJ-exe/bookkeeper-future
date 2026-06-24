@@ -35,6 +35,7 @@ import CreateBillModal from "@/components/dashboard/bills/CreateBillModal";
 import { billTabs, type Bill, type BillStatus } from "@/data/bills";
 import { useCollection } from "@/lib/store/dataStore";
 import { exportCsv } from "@/lib/exportCsv";
+import { consumeCreate } from "@/lib/quickAction";
 
 const statusTone: Record<BillStatus, "success" | "warning" | "danger" | "info" | "neutral"> = {
   Open: "info",
@@ -67,7 +68,7 @@ export default function BillsScreen() {
   const [tab, setTab] = useState("All");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [createOpen, setCreateOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(() => consumeCreate("bills"));
   const [deleteTarget, setDeleteTarget] = useState<Bill | null>(null);
 
   const q = query.trim().toLowerCase();

@@ -54,6 +54,7 @@ import {
 } from "@/data/customers";
 import { useCollection } from "@/lib/store/dataStore";
 import { exportCsv } from "@/lib/exportCsv";
+import { consumeCreate } from "@/lib/quickAction";
 
 const statusTone: Record<CustomerStatus, "success" | "neutral" | "danger"> = {
   Active: "success",
@@ -161,7 +162,7 @@ export default function CustomersScreen() {
   const { items: customers, add, remove } = useCollection<Customer>("customers");
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState("All Customers");
-  const [createOpen, setCreateOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(() => consumeCreate("customers"));
   const [deleteTarget, setDeleteTarget] = useState<Customer | null>(null);
 
   const q = query.trim().toLowerCase();

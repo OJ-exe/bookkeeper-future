@@ -54,6 +54,7 @@ import {
 } from "@/data/salesDocuments";
 import { useCollection } from "@/lib/store/dataStore";
 import { exportCsv } from "@/lib/exportCsv";
+import { consumeCreate } from "@/lib/quickAction";
 
 const statusTone: Record<InvoiceStatus, "success" | "warning" | "danger" | "info" | "neutral"> = {
   Sent: "info",
@@ -125,7 +126,7 @@ export default function SalesScreen() {
   const [tab, setTab] = useState("All");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
-  const [createOpen, setCreateOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(() => consumeCreate("invoices"));
   const [deleteTarget, setDeleteTarget] = useState<Invoice | null>(null);
 
   const q = query.trim().toLowerCase();

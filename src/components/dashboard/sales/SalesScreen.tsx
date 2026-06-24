@@ -18,6 +18,7 @@ import {
   Sparkles,
   Bell,
   Eye,
+  Pencil,
   FileDown,
   Send,
   Trash2,
@@ -150,11 +151,12 @@ const getStarted: { icon: LucideIcon; title: string; description: string }[] = [
 ];
 
 export default function SalesScreen() {
-  const { items: invoices, add, remove, setItems } = useCollection<Invoice>("invoices");
+  const { items: invoices, add, remove, update, setItems } = useCollection<Invoice>("invoices");
   const [tab, setTab] = useState("All");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [createOpen, setCreateOpen] = useState(() => consumeCreate("invoices"));
+  const [editTarget, setEditTarget] = useState<Invoice | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Invoice | null>(null);
 
   const q = query.trim().toLowerCase();
@@ -557,6 +559,9 @@ export default function SalesScreen() {
                           }
                         >
                           <MenuItem icon={Eye}>View</MenuItem>
+                          <MenuItem icon={Pencil} onClick={() => setEditTarget(inv)}>
+                            Edit
+                          </MenuItem>
                           <MenuItem icon={FileDown}>Download PDF</MenuItem>
                           <MenuItem icon={Bell}>Send Reminder</MenuItem>
                           <MenuItem icon={Trash2} danger onClick={() => setDeleteTarget(inv)}>
@@ -633,9 +638,15 @@ export default function SalesScreen() {
       </Card>
 
       <CreateInvoiceModal
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
+        key={editTarget ? `edit-${editTarget.number}` : "create"}
+        open={createOpen || editTarget !== null}
+        editing={editTarget}
+        onClose={() => {
+          setCreateOpen(false);
+          setEditTarget(null);
+        }}
         onCreate={(invoice) => add(invoice)}
+        onUpdate={(item, patch) => update(item, patch)}
       />
 
       <Modal

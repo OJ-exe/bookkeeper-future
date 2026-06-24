@@ -13,15 +13,20 @@ export default function CreateAccountModal({
   open,
   onClose,
   onCreate,
+  editing,
+  onUpdate,
 }: {
   open: boolean;
   onClose: () => void;
   onCreate: (account: Account) => void;
+  editing?: Account | null;
+  onUpdate?: (item: Account, patch: Partial<Account>) => void;
 }) {
-  const [code, setCode] = useState("");
-  const [name, setName] = useState("");
-  const [type, setType] = useState<AccountType>("Asset");
-  const [subtype, setSubtype] = useState("");
+  const isEdit = !!editing;
+  const [code, setCode] = useState(editing?.code ?? "");
+  const [name, setName] = useState(editing?.name ?? "");
+  const [type, setType] = useState<AccountType>(editing?.type ?? "Asset");
+  const [subtype, setSubtype] = useState(editing?.subtype ?? "");
 
   function reset() {
     setCode("");
@@ -33,6 +38,16 @@ export default function CreateAccountModal({
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (name.trim() === "") return;
+    if (isEdit && editing && onUpdate) {
+      onUpdate(editing, {
+        code: code.trim(),
+        name: name.trim(),
+        type,
+        subtype: subtype.trim() || "Current Assets",
+      });
+      onClose();
+      return;
+    }
     onCreate({
       code: code.trim(),
       name: name.trim(),
@@ -47,7 +62,7 @@ export default function CreateAccountModal({
   }
 
   function handleClose() {
-    reset();
+    if (!isEdit) reset();
     onClose();
   }
 
@@ -55,8 +70,12 @@ export default function CreateAccountModal({
     <Modal
       open={open}
       onClose={handleClose}
-      title="Create Account"
-      description="Add a new ledger to your chart of accounts."
+      title={isEdit ? "Edit Account" : "Create Account"}
+      description={
+        isEdit
+          ? "Update this ledger in your chart of accounts."
+          : "Add a new ledger to your chart of accounts."
+      }
     >
       <form id="create-account-form" onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -123,7 +142,7 @@ export default function CreateAccountModal({
           Cancel
         </Button>
         <Button variant="bronze" type="submit" form="create-account-form" disabled={name.trim() === ""}>
-          Create Account
+          {isEdit ? "Save Changes" : "Create Account"}
         </Button>
       </div>
     </Modal>

@@ -135,10 +135,11 @@ const quickActions: { icon: LucideIcon; label: string }[] = [
 ];
 
 export default function VendorsScreen() {
-  const { items: vendors, add, remove, setItems } = useCollection<Vendor>("vendors");
+  const { items: vendors, add, remove, update, setItems } = useCollection<Vendor>("vendors");
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState("All Vendors");
   const [createOpen, setCreateOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<Vendor | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Vendor | null>(null);
 
   const q = query.trim().toLowerCase();
@@ -443,7 +444,9 @@ export default function VendorsScreen() {
                             }
                           >
                             <MenuItem icon={Eye}>View</MenuItem>
-                            <MenuItem icon={Pencil}>Edit</MenuItem>
+                            <MenuItem icon={Pencil} onClick={() => setEditTarget(v)}>
+                              Edit
+                            </MenuItem>
                             <MenuItem icon={Wallet}>Record Payment</MenuItem>
                             <MenuItem icon={Trash2} danger onClick={() => setDeleteTarget(v)}>
                               Delete
@@ -554,9 +557,15 @@ export default function VendorsScreen() {
 
       {/* Modals */}
       <CreateVendorModal
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
+        key={editTarget ? `edit-${editTarget.name}` : "create"}
+        open={createOpen || editTarget !== null}
+        editing={editTarget}
+        onClose={() => {
+          setCreateOpen(false);
+          setEditTarget(null);
+        }}
         onCreate={(vendor) => add(vendor)}
+        onUpdate={(item, patch) => update(item, patch)}
       />
 
       <Modal

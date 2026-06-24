@@ -15,6 +15,7 @@ import {
   CircleCheck,
   Percent,
   Eye,
+  Pencil,
   FileDown,
   Wallet,
   Trash2,
@@ -92,11 +93,12 @@ function tabPredicate(tab: string, bill: Bill): boolean {
 }
 
 export default function BillsScreen() {
-  const { items: bills, add, remove, setItems } = useCollection<Bill>("bills");
+  const { items: bills, add, remove, update, setItems } = useCollection<Bill>("bills");
   const [tab, setTab] = useState("All");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [createOpen, setCreateOpen] = useState(() => consumeCreate("bills"));
+  const [editTarget, setEditTarget] = useState<Bill | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Bill | null>(null);
 
   const q = query.trim().toLowerCase();
@@ -375,6 +377,9 @@ export default function BillsScreen() {
                           }
                         >
                           <MenuItem icon={Eye}>View</MenuItem>
+                          <MenuItem icon={Pencil} onClick={() => setEditTarget(bill)}>
+                            Edit
+                          </MenuItem>
                           <MenuItem icon={FileDown}>Download PDF</MenuItem>
                           <MenuItem icon={Wallet}>Record Payment</MenuItem>
                           <MenuItem icon={Trash2} danger onClick={() => setDeleteTarget(bill)}>
@@ -422,9 +427,15 @@ export default function BillsScreen() {
       </Card>
 
       <CreateBillModal
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
+        key={editTarget ? `edit-${editTarget.number}` : "create"}
+        open={createOpen || editTarget !== null}
+        editing={editTarget}
+        onClose={() => {
+          setCreateOpen(false);
+          setEditTarget(null);
+        }}
         onCreate={(bill) => add(bill)}
+        onUpdate={(item, patch) => update(item, patch)}
       />
 
       <Modal

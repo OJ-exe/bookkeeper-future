@@ -29,19 +29,40 @@ function formatDate(raw: string) {
   return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+// Convert a stored display date (e.g. "15 Jun 2026") into an ISO value (yyyy-mm-dd)
+// for the native date input. Returns "" when the value is empty or unparseable.
+function toDateInput(raw: string | undefined) {
+  if (!raw || raw === "—") return "";
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return "";
+  const m = `${d.getMonth() + 1}`.padStart(2, "0");
+  const day = `${d.getDate()}`.padStart(2, "0");
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+
+// "—" is used as a placeholder for empty fields; show it as blank when editing.
+function unblank(v: string | undefined) {
+  return v && v !== "—" ? v : "";
+}
+
 export default function CreateInvoiceModal({
   open,
   onClose,
   onCreate,
+  editing,
+  onUpdate,
 }: {
   open: boolean;
   onClose: () => void;
   onCreate: (invoice: Invoice) => void;
+  editing?: Invoice | null;
+  onUpdate?: (item: Invoice, patch: Partial<Invoice>) => void;
 }) {
-  const [customer, setCustomer] = useState(customerOptions[0]);
-  const [date, setDate] = useState("");
-  const [due, setDue] = useState("");
-  const [amount, setAmount] = useState("");
+  const isEdit = !!editing;
+  const [customer, setCustomer] = useState(editing?.customer ?? customerOptions[0]);
+  const [date, setDate] = useState(toDateInput(editing?.date));
+  const [due, setDue] = useState(toDateInput(editing?.due));
+  const [amount, setAmount] = useState(unblank(editing?.grandTotal));
 
   function reset() {
     setCustomer(customerOptions[0]);
@@ -54,6 +75,18 @@ export default function CreateInvoiceModal({
     e.preventDefault();
     if (amount.trim() === "") return;
     const formatted = formatAmount(amount);
+    if (isEdit && editing && onUpdate) {
+      onUpdate(editing, {
+        customer,
+        date: formatDate(date),
+        due: formatDate(due),
+        grandTotal: formatted,
+        netReceivable: formatted,
+        open: formatted,
+      });
+      onClose();
+      return;
+    }
     onCreate({
       number: `INV-2026-${Math.floor(100 + Math.random() * 900)}`,
       date: formatDate(date),
@@ -70,7 +103,7 @@ export default function CreateInvoiceModal({
   }
 
   function handleClose() {
-    reset();
+    if (!isEdit) reset();
     onClose();
   }
 
@@ -78,8 +111,12 @@ export default function CreateInvoiceModal({
     <Modal
       open={open}
       onClose={handleClose}
-      title="Create Tax Invoice"
-      description="Generate a GST tax invoice in seconds."
+      title={isEdit ? "Edit Tax Invoice" : "Create Tax Invoice"}
+      description={
+        isEdit
+          ? "Update this tax invoice's details."
+          : "Generate a GST tax invoice in seconds."
+      }
       footer={
         <>
           <Button variant="outline" onClick={handleClose}>
@@ -91,7 +128,7 @@ export default function CreateInvoiceModal({
             variant="bronze"
             disabled={amount.trim() === ""}
           >
-            Create Invoice
+            {isEdit ? "Save Changes" : "Create Invoice"}
           </Button>
         </>
       }

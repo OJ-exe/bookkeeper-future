@@ -109,11 +109,12 @@ function chipPredicate(chip: string, a: Account): boolean {
 }
 
 export default function AccountsScreen() {
-  const { items: accounts, add, remove, setItems } = useCollection<Account>("accounts");
+  const { items: accounts, add, remove, update, setItems } = useCollection<Account>("accounts");
   const [query, setQuery] = useState("");
   const [chip, setChip] = useState("All Types");
   const [group, setGroup] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<Account | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Account | null>(null);
 
   function selectChip(c: string) {
@@ -359,7 +360,9 @@ export default function AccountsScreen() {
                                 </button>
                               }
                             >
-                              <MenuItem icon={Pencil}>Edit</MenuItem>
+                              <MenuItem icon={Pencil} onClick={() => setEditTarget(a)}>
+                                Edit
+                              </MenuItem>
                               <MenuItem icon={Copy}>Duplicate</MenuItem>
                               <MenuItem icon={Trash2} danger onClick={() => setDeleteTarget(a)}>
                                 Delete
@@ -415,9 +418,15 @@ export default function AccountsScreen() {
 
       {/* Modals */}
       <CreateAccountModal
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
+        key={editTarget ? `edit-${editTarget.code}` : "create"}
+        open={createOpen || editTarget !== null}
+        editing={editTarget}
+        onClose={() => {
+          setCreateOpen(false);
+          setEditTarget(null);
+        }}
         onCreate={(account) => add(account)}
+        onUpdate={(item, patch) => update(item, patch)}
       />
 
       <Modal

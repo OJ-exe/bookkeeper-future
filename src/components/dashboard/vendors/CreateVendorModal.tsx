@@ -17,21 +17,31 @@ function initialsOf(name: string) {
   return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
+// "—" is used as a placeholder for empty fields; show it as blank when editing.
+function unblank(v: string | undefined) {
+  return v && v !== "—" ? v : "";
+}
+
 export default function CreateVendorModal({
   open,
   onClose,
   onCreate,
+  editing,
+  onUpdate,
 }: {
   open: boolean;
   onClose: () => void;
   onCreate: (vendor: Vendor) => void;
+  editing?: Vendor | null;
+  onUpdate?: (item: Vendor, patch: Partial<Vendor>) => void;
 }) {
-  const [name, setName] = useState("");
-  const [gstin, setGstin] = useState("");
-  const [contactName, setContactName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [city, setCity] = useState("");
+  const isEdit = !!editing;
+  const [name, setName] = useState(editing?.name ?? "");
+  const [gstin, setGstin] = useState(unblank(editing?.gstin));
+  const [contactName, setContactName] = useState(unblank(editing?.contactName));
+  const [email, setEmail] = useState(unblank(editing?.email));
+  const [phone, setPhone] = useState(unblank(editing?.phone));
+  const [city, setCity] = useState(unblank(editing?.city));
 
   function reset() {
     setName("");
@@ -45,6 +55,19 @@ export default function CreateVendorModal({
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (name.trim() === "") return;
+    if (isEdit && editing && onUpdate) {
+      onUpdate(editing, {
+        name: name.trim(),
+        initials: initialsOf(name),
+        gstin: gstin.trim() || "—",
+        city: city.trim() || "—",
+        contactName: contactName.trim() || "—",
+        email: email.trim() || "—",
+        phone: phone.trim() || "—",
+      });
+      onClose();
+      return;
+    }
     onCreate({
       name: name.trim(),
       initials: initialsOf(name),
@@ -66,7 +89,7 @@ export default function CreateVendorModal({
   }
 
   function handleClose() {
-    reset();
+    if (!isEdit) reset();
     onClose();
   }
 
@@ -74,8 +97,12 @@ export default function CreateVendorModal({
     <Modal
       open={open}
       onClose={handleClose}
-      title="Create Vendor"
-      description="Add a new vendor to your master data."
+      title={isEdit ? "Edit Vendor" : "Create Vendor"}
+      description={
+        isEdit
+          ? "Update this vendor's master data."
+          : "Add a new vendor to your master data."
+      }
       size="lg"
     >
       <form id="create-vendor-form" onSubmit={handleSubmit}>
@@ -172,7 +199,7 @@ export default function CreateVendorModal({
           form="create-vendor-form"
           disabled={name.trim() === ""}
         >
-          Create Vendor
+          {isEdit ? "Save Changes" : "Create Vendor"}
         </Button>
       </div>
     </Modal>

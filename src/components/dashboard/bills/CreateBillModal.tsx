@@ -29,19 +29,40 @@ function formatDate(raw: string) {
   return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+// Convert a stored display date (e.g. "15 Jun 2026") into an ISO value (yyyy-mm-dd)
+// for the native date input. Returns "" when the value is empty or unparseable.
+function toDateInput(raw: string | undefined) {
+  if (!raw || raw === "—") return "";
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return "";
+  const m = `${d.getMonth() + 1}`.padStart(2, "0");
+  const day = `${d.getDate()}`.padStart(2, "0");
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+
+// "—" is used as a placeholder for empty fields; show it as blank when editing.
+function unblank(v: string | undefined) {
+  return v && v !== "—" ? v : "";
+}
+
 export default function CreateBillModal({
   open,
   onClose,
   onCreate,
+  editing,
+  onUpdate,
 }: {
   open: boolean;
   onClose: () => void;
   onCreate: (bill: Bill) => void;
+  editing?: Bill | null;
+  onUpdate?: (item: Bill, patch: Partial<Bill>) => void;
 }) {
-  const [vendor, setVendor] = useState(vendorOptions[0]);
-  const [date, setDate] = useState("");
-  const [due, setDue] = useState("");
-  const [amount, setAmount] = useState("");
+  const isEdit = !!editing;
+  const [vendor, setVendor] = useState(editing?.vendor ?? vendorOptions[0]);
+  const [date, setDate] = useState(toDateInput(editing?.date));
+  const [due, setDue] = useState(toDateInput(editing?.due));
+  const [amount, setAmount] = useState(unblank(editing?.grandTotal));
 
   function reset() {
     setVendor(vendorOptions[0]);
@@ -54,6 +75,18 @@ export default function CreateBillModal({
     e.preventDefault();
     if (amount.trim() === "") return;
     const formatted = formatAmount(amount);
+    if (isEdit && editing && onUpdate) {
+      onUpdate(editing, {
+        vendor,
+        date: formatDate(date),
+        due: formatDate(due),
+        grandTotal: formatted,
+        netPayable: formatted,
+        open: formatted,
+      });
+      onClose();
+      return;
+    }
     onCreate({
       number: `BILL-2026-${Math.floor(100 + Math.random() * 900)}`,
       date: formatDate(date),
@@ -70,7 +103,7 @@ export default function CreateBillModal({
   }
 
   function handleClose() {
-    reset();
+    if (!isEdit) reset();
     onClose();
   }
 
@@ -78,8 +111,12 @@ export default function CreateBillModal({
     <Modal
       open={open}
       onClose={handleClose}
-      title="Create Bill"
-      description="Record a new purchase bill in seconds."
+      title={isEdit ? "Edit Bill" : "Create Bill"}
+      description={
+        isEdit
+          ? "Update this purchase bill's details."
+          : "Record a new purchase bill in seconds."
+      }
       footer={
         <>
           <Button variant="outline" onClick={handleClose}>
@@ -91,7 +128,7 @@ export default function CreateBillModal({
             variant="bronze"
             disabled={amount.trim() === ""}
           >
-            Create Bill
+            {isEdit ? "Save Changes" : "Create Bill"}
           </Button>
         </>
       }

@@ -44,12 +44,12 @@ import { Menu, MenuItem } from "@/components/ui/Menu";
 import CreateVendorModal from "@/components/dashboard/vendors/CreateVendorModal";
 
 import {
-  vendors,
   vendorTabs,
   topVendors,
   type Vendor,
   type VendorStatus,
 } from "@/data/vendors";
+import { useCollection } from "@/lib/store/dataStore";
 
 const statusTone: Record<VendorStatus, "success" | "neutral" | "danger"> = {
   Active: "success",
@@ -100,6 +100,7 @@ const quickActions: { icon: LucideIcon; label: string }[] = [
 ];
 
 export default function VendorsScreen() {
+  const { items: vendors, add, remove } = useCollection<Vendor>("vendors");
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState("All Vendors");
   const [createOpen, setCreateOpen] = useState(false);
@@ -505,7 +506,11 @@ export default function VendorsScreen() {
       </div>
 
       {/* Modals */}
-      <CreateVendorModal open={createOpen} onClose={() => setCreateOpen(false)} />
+      <CreateVendorModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreate={(vendor) => add(vendor)}
+      />
 
       <Modal
         open={deleteTarget !== null}
@@ -520,7 +525,10 @@ export default function VendorsScreen() {
             </Button>
             <button
               type="button"
-              onClick={() => setDeleteTarget(null)}
+              onClick={() => {
+                if (deleteTarget) remove(deleteTarget);
+                setDeleteTarget(null);
+              }}
               className="h-11 px-5 rounded-xl bg-danger text-white text-sm font-medium hover:opacity-90 transition"
             >
               Delete

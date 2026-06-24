@@ -38,6 +38,7 @@ import StatCard from "@/components/ui/StatCard";
 import StatusPill from "@/components/ui/StatusPill";
 import Card from "@/components/ui/Card";
 import CardSelect from "@/components/ui/CardSelect";
+import Modal from "@/components/ui/Modal";
 import { Menu, MenuItem, MenuLabel, MenuDivider } from "@/components/ui/Menu";
 
 import RevenueTrendChart from "@/components/dashboard/sales/RevenueTrendChart";
@@ -46,12 +47,12 @@ import InvoicePipeline from "@/components/dashboard/sales/InvoicePipeline";
 import CreateInvoiceModal from "@/components/dashboard/sales/CreateInvoiceModal";
 
 import {
-  invoices,
   docTabs,
   topCustomersBySales,
   type Invoice,
   type InvoiceStatus,
 } from "@/data/salesDocuments";
+import { useCollection } from "@/lib/store/dataStore";
 
 const statusTone: Record<InvoiceStatus, "success" | "warning" | "danger" | "info" | "neutral"> = {
   Sent: "info",
@@ -119,10 +120,12 @@ const getStarted: { icon: LucideIcon; title: string; description: string }[] = [
 ];
 
 export default function SalesScreen() {
+  const { items: invoices, add, remove } = useCollection<Invoice>("invoices");
   const [tab, setTab] = useState("All");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [createOpen, setCreateOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Invoice | null>(null);
 
   const q = query.trim().toLowerCase();
   const filtered = invoices.filter((inv) => {
@@ -494,7 +497,7 @@ export default function SalesScreen() {
                           <MenuItem icon={Eye}>View</MenuItem>
                           <MenuItem icon={FileDown}>Download PDF</MenuItem>
                           <MenuItem icon={Bell}>Send Reminder</MenuItem>
-                          <MenuItem icon={Trash2} danger>
+                          <MenuItem icon={Trash2} danger onClick={() => setDeleteTarget(inv)}>
                             Delete
                           </MenuItem>
                         </Menu>
@@ -567,7 +570,42 @@ export default function SalesScreen() {
         </div>
       </Card>
 
-      <CreateInvoiceModal open={createOpen} onClose={() => setCreateOpen(false)} />
+      <CreateInvoiceModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreate={(invoice) => add(invoice)}
+      />
+
+      <Modal
+        open={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        title="Delete invoice?"
+        description="This action cannot be undone."
+        size="sm"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>
+              Cancel
+            </Button>
+            <button
+              type="button"
+              onClick={() => {
+                if (deleteTarget) remove(deleteTarget);
+                setDeleteTarget(null);
+              }}
+              className="h-11 px-5 rounded-xl bg-danger text-white text-sm font-medium hover:opacity-90 transition"
+            >
+              Delete
+            </button>
+          </>
+        }
+      >
+        <p className="text-sm text-fg-soft">
+          Are you sure you want to delete{" "}
+          <span className="font-semibold text-fg">{deleteTarget?.number}</span>? This invoice will
+          no longer be accessible.
+        </p>
+      </Modal>
     </div>
   );
 }

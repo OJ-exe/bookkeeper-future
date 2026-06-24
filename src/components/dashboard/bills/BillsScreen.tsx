@@ -27,11 +27,13 @@ import Button from "@/components/ui/Button";
 import StatCard from "@/components/ui/StatCard";
 import StatusPill from "@/components/ui/StatusPill";
 import Card from "@/components/ui/Card";
+import Modal from "@/components/ui/Modal";
 import { Menu, MenuItem, MenuLabel, MenuDivider } from "@/components/ui/Menu";
 
 import CreateBillModal from "@/components/dashboard/bills/CreateBillModal";
 
-import { bills, billTabs, type Bill, type BillStatus } from "@/data/bills";
+import { billTabs, type Bill, type BillStatus } from "@/data/bills";
+import { useCollection } from "@/lib/store/dataStore";
 
 const statusTone: Record<BillStatus, "success" | "warning" | "danger" | "info" | "neutral"> = {
   Open: "info",
@@ -60,10 +62,12 @@ function tabPredicate(tab: string, bill: Bill): boolean {
 }
 
 export default function BillsScreen() {
+  const { items: bills, add, remove } = useCollection<Bill>("bills");
   const [tab, setTab] = useState("All");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [createOpen, setCreateOpen] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<Bill | null>(null);
 
   const q = query.trim().toLowerCase();
   const filtered = bills.filter((bill) => {
@@ -311,7 +315,7 @@ export default function BillsScreen() {
                           <MenuItem icon={Eye}>View</MenuItem>
                           <MenuItem icon={FileDown}>Download PDF</MenuItem>
                           <MenuItem icon={Wallet}>Record Payment</MenuItem>
-                          <MenuItem icon={Trash2} danger>
+                          <MenuItem icon={Trash2} danger onClick={() => setDeleteTarget(bill)}>
                             Delete
                           </MenuItem>
                         </Menu>
@@ -355,7 +359,42 @@ export default function BillsScreen() {
         </div>
       </Card>
 
-      <CreateBillModal open={createOpen} onClose={() => setCreateOpen(false)} />
+      <CreateBillModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreate={(bill) => add(bill)}
+      />
+
+      <Modal
+        open={deleteTarget !== null}
+        onClose={() => setDeleteTarget(null)}
+        title="Delete bill?"
+        description="This action cannot be undone."
+        size="sm"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setDeleteTarget(null)}>
+              Cancel
+            </Button>
+            <button
+              type="button"
+              onClick={() => {
+                if (deleteTarget) remove(deleteTarget);
+                setDeleteTarget(null);
+              }}
+              className="h-11 px-5 rounded-xl bg-danger text-white text-sm font-medium hover:opacity-90 transition"
+            >
+              Delete
+            </button>
+          </>
+        }
+      >
+        <p className="text-sm text-fg-soft">
+          Are you sure you want to delete{" "}
+          <span className="font-semibold text-fg">{deleteTarget?.number}</span>? This bill will no
+          longer be accessible.
+        </p>
+      </Modal>
     </div>
   );
 }

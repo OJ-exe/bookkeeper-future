@@ -47,12 +47,12 @@ import RevenueContributionDonut from "@/components/dashboard/customers/RevenueCo
 import CreateCustomerModal from "@/components/dashboard/customers/CreateCustomerModal";
 
 import {
-  customers,
   customerTabs,
   topCustomers,
   type Customer,
   type CustomerStatus,
 } from "@/data/customers";
+import { useCollection } from "@/lib/store/dataStore";
 
 const statusTone: Record<CustomerStatus, "success" | "neutral" | "danger"> = {
   Active: "success",
@@ -157,6 +157,7 @@ const getStarted: {
 ];
 
 export default function CustomersScreen() {
+  const { items: customers, add, remove } = useCollection<Customer>("customers");
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState("All Customers");
   const [createOpen, setCreateOpen] = useState(false);
@@ -592,7 +593,11 @@ export default function CustomersScreen() {
       </Card>
 
       {/* Modals */}
-      <CreateCustomerModal open={createOpen} onClose={() => setCreateOpen(false)} />
+      <CreateCustomerModal
+        open={createOpen}
+        onClose={() => setCreateOpen(false)}
+        onCreate={(customer) => add(customer)}
+      />
 
       <Modal
         open={deleteTarget !== null}
@@ -607,7 +612,10 @@ export default function CustomersScreen() {
             </Button>
             <button
               type="button"
-              onClick={() => setDeleteTarget(null)}
+              onClick={() => {
+                if (deleteTarget) remove(deleteTarget);
+                setDeleteTarget(null);
+              }}
               className="h-11 px-5 rounded-xl bg-danger text-white text-sm font-medium hover:opacity-90 transition"
             >
               Delete

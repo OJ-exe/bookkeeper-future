@@ -6,7 +6,6 @@ import {
   Filter,
   Plus,
   Download,
-  Upload,
   Users,
   BadgeCheck,
   Receipt,
@@ -53,8 +52,43 @@ import {
   type CustomerStatus,
 } from "@/data/customers";
 import { useCollection } from "@/lib/store/dataStore";
-import { exportCsv } from "@/lib/exportCsv";
+import { downloadCsvTemplate } from "@/lib/exportCsv";
 import { consumeCreate } from "@/lib/quickAction";
+import UploadButton from "@/components/ui/UploadButton";
+
+const customerCsvHeaders = [
+  "Name", "GSTIN", "City", "Contact Name", "Email", "Phone", "Revenue", "Outstanding", "Status",
+];
+
+function customerInitials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  return (parts.length === 1 ? parts[0].slice(0, 2) : parts[0][0] + parts[1][0]).toUpperCase();
+}
+
+function buildImportedCustomer(row: Record<string, string>): Customer | null {
+  const name = (row["Name"] ?? row["name"] ?? "").trim();
+  if (!name) return null;
+  const rawStatus = (row["Status"] ?? "").trim();
+  const status: CustomerStatus =
+    rawStatus === "Inactive" || rawStatus === "Overdue" ? rawStatus : "Active";
+  return {
+    name,
+    initials: customerInitials(name),
+    vip: false,
+    gstin: row["GSTIN"]?.trim() || "—",
+    city: row["City"]?.trim() || "—",
+    contactName: row["Contact Name"]?.trim() || row["Contact"]?.trim() || "—",
+    email: row["Email"]?.trim() || "—",
+    phone: row["Phone"]?.trim() || "—",
+    revenue: row["Revenue"]?.trim() || "₹0",
+    revenuePct: "0% of total",
+    outstanding: row["Outstanding"]?.trim() || "₹0",
+    outstandingNote: "Imported",
+    status,
+    isNew: true,
+  };
+}
 
 const statusTone: Record<CustomerStatus, "success" | "neutral" | "danger"> = {
   Active: "success",
@@ -159,7 +193,7 @@ const getStarted: {
 ];
 
 export default function CustomersScreen() {
-  const { items: customers, add, remove } = useCollection<Customer>("customers");
+  const { items: customers, add, remove, setItems } = useCollection<Customer>("customers");
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState("All Customers");
   const [createOpen, setCreateOpen] = useState(() => consumeCreate("customers"));
@@ -188,28 +222,19 @@ export default function CustomersScreen() {
               variant="outline"
               size="sm"
               onClick={() =>
-                exportCsv<Customer>(
-                  "customers.csv",
-                  [
-                    { key: "name", header: "Name" },
-                    { key: "gstin", header: "GSTIN" },
-                    { key: "city", header: "City" },
-                    { key: "contactName", header: "Contact Name" },
-                    { key: "email", header: "Email" },
-                    { key: "phone", header: "Phone" },
-                    { key: "revenue", header: "Revenue" },
-                    { key: "outstanding", header: "Outstanding" },
-                    { key: "status", header: "Status" },
-                  ],
-                  filtered
-                )
+                downloadCsvTemplate("customers-template.csv", customerCsvHeaders, [
+                  "Acme Pvt Ltd", "27ABCDE1234F1Z5", "Mumbai, Maharashtra",
+                  "Rajesh Kumar", "rajesh@acme.com", "+91 98765 43210", "₹0", "₹0", "Active",
+                ])
               }
             >
               <Download size={16} /> Download Template
             </Button>
-            <Button variant="outline" size="sm">
-              <Upload size={16} /> Upload CSV
-            </Button>
+            <UploadButton<Customer>
+              label="Upload CSV"
+              build={buildImportedCustomer}
+              onImport={(records) => setItems([...records, ...customers])}
+            />
             <Button variant="bronze" size="sm" onClick={() => setCreateOpen(true)}>
               <Plus size={16} /> Create Customer
             </Button>

@@ -50,7 +50,15 @@ const SEED: Store = {
 
 const STORAGE_KEY = "bftf-data-v1";
 
-let memory: Store = SEED;
+// Clone the seed so `memory` never aliases the imported seed arrays — keeps the
+// pristine seed safe even if a future mutation ever writes in place.
+function freshSeed(): Store {
+  return Object.fromEntries(
+    (Object.entries(SEED) as [CollectionKey, unknown[]][]).map(([k, v]) => [k, [...v]])
+  ) as Store;
+}
+
+let memory: Store = freshSeed();
 let initialized = false;
 const listeners = new Set<() => void>();
 
@@ -61,7 +69,7 @@ function ensureInit() {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (raw) {
       const saved = JSON.parse(raw) as Partial<Store>;
-      memory = { ...SEED, ...saved };
+      memory = { ...freshSeed(), ...saved };
     }
   } catch {
     /* corrupt/unavailable storage — fall back to seed */
@@ -105,7 +113,7 @@ function setCollection(key: CollectionKey, rows: unknown[]) {
 
 /** Replace the entire store with the original seed data. */
 export function resetStore() {
-  memory = SEED;
+  memory = freshSeed();
   persist();
   emit();
 }

@@ -19,8 +19,8 @@ export function exportCsv<T>(
   const header = columns.map((c) => escapeCell(c.header)).join(",");
   const body = rows
     .map((row) => columns.map((c) => escapeCell(row[c.key])).join(","))
-    .join("\n");
-  const csv = `${header}\n${body}`;
+    .join("\r\n");
+  const csv = `${header}\r\n${body}`;
 
   const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);

@@ -39,6 +39,7 @@ import {
   type PaymentDirection,
 } from "@/data/payments";
 import { useCollection } from "@/lib/store/dataStore";
+import { exportCsv } from "@/lib/exportCsv";
 
 const statusTone: Record<PaymentStatus, "success" | "warning" | "danger" | "info" | "neutral"> = {
   Completed: "success",
@@ -220,7 +221,27 @@ export default function PaymentsScreen() {
               }
             >
               <MenuLabel>Export</MenuLabel>
-              <MenuItem icon={FileDown}>Export as CSV</MenuItem>
+              <MenuItem
+                icon={FileDown}
+                onClick={() =>
+                  exportCsv<Payment>(
+                    "payments.csv",
+                    [
+                      { key: "id", header: "ID" },
+                      { key: "date", header: "Date" },
+                      { key: "party", header: "Party" },
+                      { key: "direction", header: "Direction" },
+                      { key: "method", header: "Method" },
+                      { key: "reference", header: "Reference" },
+                      { key: "status", header: "Status" },
+                      { key: "amount", header: "Amount" },
+                    ],
+                    filtered
+                  )
+                }
+              >
+                Export as CSV
+              </MenuItem>
               <MenuItem icon={FileDown}>Export as Excel</MenuItem>
               <MenuDivider />
               <MenuItem icon={Link2}>Reconcile All</MenuItem>

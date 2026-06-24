@@ -53,6 +53,7 @@ import {
   type CustomerStatus,
 } from "@/data/customers";
 import { useCollection } from "@/lib/store/dataStore";
+import { exportCsv } from "@/lib/exportCsv";
 
 const statusTone: Record<CustomerStatus, "success" | "neutral" | "danger"> = {
   Active: "success",
@@ -182,7 +183,27 @@ export default function CustomersScreen() {
         description="Manage customer master data, GST details, receivable context, transactions, and ledgers."
         actions={
           <>
-            <Button variant="outline" size="sm">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                exportCsv<Customer>(
+                  "customers.csv",
+                  [
+                    { key: "name", header: "Name" },
+                    { key: "gstin", header: "GSTIN" },
+                    { key: "city", header: "City" },
+                    { key: "contactName", header: "Contact Name" },
+                    { key: "email", header: "Email" },
+                    { key: "phone", header: "Phone" },
+                    { key: "revenue", header: "Revenue" },
+                    { key: "outstanding", header: "Outstanding" },
+                    { key: "status", header: "Status" },
+                  ],
+                  filtered
+                )
+              }
+            >
               <Download size={16} /> Download Template
             </Button>
             <Button variant="outline" size="sm">

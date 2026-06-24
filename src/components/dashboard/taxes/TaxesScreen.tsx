@@ -48,7 +48,9 @@ import {
   taxRecords,
   taxSourceFilters,
   type TaxStatus,
+  type TaxRecord,
 } from "@/data/taxes";
+import { exportCsv } from "@/lib/exportCsv";
 
 const statusTone: Record<TaxStatus, "success" | "warning" | "danger" | "info" | "neutral"> = {
   Filed: "success",
@@ -169,7 +171,29 @@ export default function TaxesScreen() {
                 <StatusPill tone="success">Ready</StatusPill>
               </div>
             </div>
-            <Button variant="outline" size="sm">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                exportCsv<TaxRecord>(
+                  "tax-records.csv",
+                  [
+                    { key: "date", header: "Date" },
+                    { key: "document", header: "Document" },
+                    { key: "type", header: "Type" },
+                    { key: "category", header: "Category" },
+                    { key: "party", header: "Party" },
+                    { key: "taxable", header: "Taxable" },
+                    { key: "cgst", header: "CGST" },
+                    { key: "sgst", header: "SGST" },
+                    { key: "igst", header: "IGST" },
+                    { key: "totalGst", header: "Total GST" },
+                    { key: "status", header: "Status" },
+                  ],
+                  filtered
+                )
+              }
+            >
               <Download size={16} /> Download CSV
             </Button>
           </div>

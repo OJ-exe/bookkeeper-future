@@ -34,6 +34,7 @@ import CreateOrderModal from "@/components/dashboard/orders/CreateOrderModal";
 
 import { orderTabs, type Order, type OrderStatus } from "@/data/orders";
 import { useCollection } from "@/lib/store/dataStore";
+import { exportCsv } from "@/lib/exportCsv";
 
 const statusTone: Record<OrderStatus, "success" | "warning" | "danger" | "info" | "neutral"> = {
   Open: "info",
@@ -224,7 +225,27 @@ export default function OrdersScreen() {
               }
             >
               <MenuLabel>Export</MenuLabel>
-              <MenuItem icon={Download}>Export as CSV</MenuItem>
+              <MenuItem
+                icon={Download}
+                onClick={() =>
+                  exportCsv<Order>(
+                    "orders.csv",
+                    [
+                      { key: "number", header: "Number" },
+                      { key: "date", header: "Date" },
+                      { key: "expectedDate", header: "Expected Date" },
+                      { key: "party", header: "Party" },
+                      { key: "kind", header: "Kind" },
+                      { key: "status", header: "Status" },
+                      { key: "total", header: "Total" },
+                      { key: "fulfilled", header: "Fulfilled" },
+                    ],
+                    filtered
+                  )
+                }
+              >
+                Export as CSV
+              </MenuItem>
               <MenuItem icon={Download}>Export as Excel</MenuItem>
               <MenuDivider />
               <MenuItem icon={FileText}>Convert Selected</MenuItem>

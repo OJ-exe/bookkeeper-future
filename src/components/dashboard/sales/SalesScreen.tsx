@@ -53,6 +53,7 @@ import {
   type InvoiceStatus,
 } from "@/data/salesDocuments";
 import { useCollection } from "@/lib/store/dataStore";
+import { exportCsv } from "@/lib/exportCsv";
 
 const statusTone: Record<InvoiceStatus, "success" | "warning" | "danger" | "info" | "neutral"> = {
   Sent: "info",
@@ -396,7 +397,28 @@ export default function SalesScreen() {
               }
             >
               <MenuLabel>Export</MenuLabel>
-              <MenuItem icon={FileDown}>Export as CSV</MenuItem>
+              <MenuItem
+                icon={FileDown}
+                onClick={() =>
+                  exportCsv<Invoice>(
+                    "invoices.csv",
+                    [
+                      { key: "number", header: "Number" },
+                      { key: "date", header: "Date" },
+                      { key: "due", header: "Due" },
+                      { key: "customer", header: "Customer" },
+                      { key: "source", header: "Source" },
+                      { key: "status", header: "Status" },
+                      { key: "grandTotal", header: "Grand Total" },
+                      { key: "netReceivable", header: "Net Receivable" },
+                      { key: "open", header: "Open" },
+                    ],
+                    filtered
+                  )
+                }
+              >
+                Export as CSV
+              </MenuItem>
               <MenuItem icon={FileDown}>Export as Excel</MenuItem>
               <MenuDivider />
               <MenuItem icon={Printer}>Print All</MenuItem>

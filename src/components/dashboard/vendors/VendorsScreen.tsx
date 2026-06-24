@@ -50,6 +50,7 @@ import {
   type VendorStatus,
 } from "@/data/vendors";
 import { useCollection } from "@/lib/store/dataStore";
+import { exportCsv } from "@/lib/exportCsv";
 
 const statusTone: Record<VendorStatus, "success" | "neutral" | "danger"> = {
   Active: "success",
@@ -125,7 +126,27 @@ export default function VendorsScreen() {
         description="Manage vendor master data, GST details, payable context, purchase commitments, and ledgers."
         actions={
           <>
-            <Button variant="outline" size="sm">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                exportCsv<Vendor>(
+                  "vendors.csv",
+                  [
+                    { key: "name", header: "Name" },
+                    { key: "gstin", header: "GSTIN" },
+                    { key: "city", header: "City" },
+                    { key: "contactName", header: "Contact Name" },
+                    { key: "email", header: "Email" },
+                    { key: "phone", header: "Phone" },
+                    { key: "spend", header: "Spend" },
+                    { key: "payable", header: "Payable" },
+                    { key: "status", header: "Status" },
+                  ],
+                  filtered
+                )
+              }
+            >
               <Download size={16} /> Download Template
             </Button>
             <Button variant="outline" size="sm">

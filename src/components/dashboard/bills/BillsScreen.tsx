@@ -34,6 +34,7 @@ import CreateBillModal from "@/components/dashboard/bills/CreateBillModal";
 
 import { billTabs, type Bill, type BillStatus } from "@/data/bills";
 import { useCollection } from "@/lib/store/dataStore";
+import { exportCsv } from "@/lib/exportCsv";
 
 const statusTone: Record<BillStatus, "success" | "warning" | "danger" | "info" | "neutral"> = {
   Open: "info",
@@ -225,7 +226,28 @@ export default function BillsScreen() {
               }
             >
               <MenuLabel>Export</MenuLabel>
-              <MenuItem icon={FileDown}>Export as CSV</MenuItem>
+              <MenuItem
+                icon={FileDown}
+                onClick={() =>
+                  exportCsv<Bill>(
+                    "bills.csv",
+                    [
+                      { key: "number", header: "Number" },
+                      { key: "date", header: "Date" },
+                      { key: "due", header: "Due" },
+                      { key: "vendor", header: "Vendor" },
+                      { key: "source", header: "Source" },
+                      { key: "status", header: "Status" },
+                      { key: "grandTotal", header: "Grand Total" },
+                      { key: "netPayable", header: "Net Payable" },
+                      { key: "open", header: "Open" },
+                    ],
+                    filtered
+                  )
+                }
+              >
+                Export as CSV
+              </MenuItem>
               <MenuItem icon={FileDown}>Export as Excel</MenuItem>
               <MenuDivider />
               <MenuItem icon={Printer}>Print All</MenuItem>

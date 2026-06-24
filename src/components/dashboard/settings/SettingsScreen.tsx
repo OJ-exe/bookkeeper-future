@@ -19,6 +19,7 @@ import Button from "@/components/ui/Button";
 import Card from "@/components/ui/Card";
 import StatusPill from "@/components/ui/StatusPill";
 import Modal from "@/components/ui/Modal";
+import { resetStore } from "@/lib/store/dataStore";
 
 type Section =
   | "Profile"
@@ -391,6 +392,7 @@ const activeSessions: { device: string; meta: string }[] = [
 
 function SecuritySection() {
   const [twoFA, setTwoFA] = useState(true);
+  const [resetOpen, setResetOpen] = useState(false);
   return (
     <div className="space-y-8">
       <div>
@@ -438,6 +440,51 @@ function SecuritySection() {
           ))}
         </ul>
       </div>
+
+      <div className="border-t border-line pt-6">
+        <h2 className="text-base font-semibold text-fg">Data</h2>
+        <div className="mt-4 flex flex-col gap-4 rounded-xl border border-line p-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className="text-sm font-medium text-fg">Reset demo data</p>
+            <p className="text-sm text-muted">
+              Restore all records to the original seed data. This can&apos;t be undone.
+            </p>
+          </div>
+          <Button variant="outline" size="sm" onClick={() => setResetOpen(true)}>
+            Reset demo data
+          </Button>
+        </div>
+      </div>
+
+      <Modal
+        open={resetOpen}
+        onClose={() => setResetOpen(false)}
+        title="Reset demo data?"
+        description="This action cannot be undone."
+        size="sm"
+        footer={
+          <>
+            <Button variant="outline" onClick={() => setResetOpen(false)}>
+              Cancel
+            </Button>
+            <button
+              type="button"
+              onClick={() => {
+                resetStore();
+                setResetOpen(false);
+              }}
+              className="h-11 px-5 rounded-xl bg-danger text-white text-sm font-medium hover:opacity-90 transition"
+            >
+              Reset data
+            </button>
+          </>
+        }
+      >
+        <p className="text-sm text-fg-soft">
+          All customers, vendors, invoices, bills and other records will revert to
+          the original seed data. Any changes you&apos;ve made will be lost.
+        </p>
+      </Modal>
     </div>
   );
 }

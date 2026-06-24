@@ -46,6 +46,7 @@ import {
   type AccountType,
 } from "@/data/accounts";
 import { useCollection } from "@/lib/store/dataStore";
+import { exportCsv } from "@/lib/exportCsv";
 
 const typeIcon: Record<AccountType, LucideIcon> = {
   Asset: Wallet,
@@ -123,7 +124,24 @@ export default function AccountsScreen() {
             <Button variant="outline" size="sm">
               <BookText size={16} /> Accounts Register
             </Button>
-            <Button variant="outline" size="sm">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                exportCsv<Account>(
+                  "chart-of-accounts.csv",
+                  [
+                    { key: "code", header: "Code" },
+                    { key: "name", header: "Name" },
+                    { key: "type", header: "Type" },
+                    { key: "subtype", header: "Subtype" },
+                    { key: "balance", header: "Balance" },
+                    { key: "linked", header: "Linked" },
+                  ],
+                  filtered
+                )
+              }
+            >
               <Download size={16} /> Export Accounts
             </Button>
             <Button variant="outline" size="sm">

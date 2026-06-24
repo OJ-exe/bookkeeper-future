@@ -6,7 +6,6 @@ import {
   Filter,
   Plus,
   Download,
-  Upload,
   ChevronLeft,
   ChevronRight,
   MoreVertical,
@@ -34,8 +33,37 @@ import CreateBillModal from "@/components/dashboard/bills/CreateBillModal";
 
 import { billTabs, type Bill, type BillStatus } from "@/data/bills";
 import { useCollection } from "@/lib/store/dataStore";
-import { exportCsv } from "@/lib/exportCsv";
+import { exportCsv, downloadCsvTemplate } from "@/lib/exportCsv";
 import { consumeCreate } from "@/lib/quickAction";
+import UploadButton from "@/components/ui/UploadButton";
+
+const billCsvHeaders = [
+  "Bill Number", "Bill Date", "Due Date", "Vendor", "Source",
+  "Status", "Grand Total", "Net Payable", "Open",
+];
+
+const billStatuses: BillStatus[] = ["Open", "Paid", "Overdue", "Recurring", "Draft"];
+
+function buildImportedBill(row: Record<string, string>): Bill | null {
+  const vendor = (row["Vendor"] ?? row["vendor"] ?? "").trim();
+  const number =
+    row["Bill Number"]?.trim() ||
+    `BILL-2026-${Math.floor(100 + Math.random() * 900)}`;
+  if (!vendor && !row["Bill Number"]?.trim()) return null;
+  const rawStatus = (row["Status"] ?? "").trim() as BillStatus;
+  const status: BillStatus = billStatuses.includes(rawStatus) ? rawStatus : "Open";
+  return {
+    number,
+    date: row["Bill Date"]?.trim() || "—",
+    due: row["Due Date"]?.trim() || "—",
+    vendor: vendor || "—",
+    source: row["Source"]?.trim() || "Direct",
+    status,
+    grandTotal: row["Grand Total"]?.trim() || "₹0",
+    netPayable: row["Net Payable"]?.trim() || "₹0",
+    open: row["Open"]?.trim() || "₹0",
+  };
+}
 
 const statusTone: Record<BillStatus, "success" | "warning" | "danger" | "info" | "neutral"> = {
   Open: "info",
@@ -64,7 +92,7 @@ function tabPredicate(tab: string, bill: Bill): boolean {
 }
 
 export default function BillsScreen() {
-  const { items: bills, add, remove } = useCollection<Bill>("bills");
+  const { items: bills, add, remove, setItems } = useCollection<Bill>("bills");
   const [tab, setTab] = useState("All");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -113,12 +141,23 @@ export default function BillsScreen() {
         showStar={false}
         actions={
           <>
-            <Button variant="outline" size="sm">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                downloadCsvTemplate("bills-template.csv", billCsvHeaders, [
+                  "BILL-2026-045", "15 Jun 2026", "30 Jun 2026", "Sharma Supplies",
+                  "Direct", "Open", "₹0", "₹0", "₹0",
+                ])
+              }
+            >
               <Download size={16} /> Download Template
             </Button>
-            <Button variant="outline" size="sm">
-              <Upload size={16} /> Upload CSV
-            </Button>
+            <UploadButton<Bill>
+              label="Upload CSV"
+              build={buildImportedBill}
+              onImport={(records) => setItems([...records, ...bills])}
+            />
             <Button variant="bronze" size="sm" onClick={() => setCreateOpen(true)}>
               <Plus size={16} /> Create Bill
             </Button>

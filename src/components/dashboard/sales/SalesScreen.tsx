@@ -6,7 +6,6 @@ import {
   Filter,
   Plus,
   Download,
-  Upload,
   ChevronDown,
   ChevronLeft,
   ChevronRight,
@@ -53,8 +52,37 @@ import {
   type InvoiceStatus,
 } from "@/data/salesDocuments";
 import { useCollection } from "@/lib/store/dataStore";
-import { exportCsv } from "@/lib/exportCsv";
+import { exportCsv, downloadCsvTemplate } from "@/lib/exportCsv";
 import { consumeCreate } from "@/lib/quickAction";
+import UploadButton from "@/components/ui/UploadButton";
+
+const invoiceCsvHeaders = [
+  "Invoice Number", "Invoice Date", "Due Date", "Customer", "Source",
+  "Status", "Grand Total", "Net Receivable", "Open",
+];
+
+const invoiceStatuses: InvoiceStatus[] = ["Sent", "Viewed", "Paid", "Overdue", "Recurring"];
+
+function buildImportedInvoice(row: Record<string, string>): Invoice | null {
+  const customer = (row["Customer"] ?? row["customer"] ?? "").trim();
+  const number =
+    row["Invoice Number"]?.trim() ||
+    `INV-2026-${Math.floor(100 + Math.random() * 900)}`;
+  if (!customer && !row["Invoice Number"]?.trim()) return null;
+  const rawStatus = (row["Status"] ?? "").trim() as InvoiceStatus;
+  const status: InvoiceStatus = invoiceStatuses.includes(rawStatus) ? rawStatus : "Sent";
+  return {
+    number,
+    date: row["Invoice Date"]?.trim() || "—",
+    due: row["Due Date"]?.trim() || "—",
+    customer: customer || "—",
+    source: row["Source"]?.trim() || "Direct",
+    status,
+    grandTotal: row["Grand Total"]?.trim() || "₹0",
+    netReceivable: row["Net Receivable"]?.trim() || "₹0",
+    open: row["Open"]?.trim() || "₹0",
+  };
+}
 
 const statusTone: Record<InvoiceStatus, "success" | "warning" | "danger" | "info" | "neutral"> = {
   Sent: "info",
@@ -122,7 +150,7 @@ const getStarted: { icon: LucideIcon; title: string; description: string }[] = [
 ];
 
 export default function SalesScreen() {
-  const { items: invoices, add, remove } = useCollection<Invoice>("invoices");
+  const { items: invoices, add, remove, setItems } = useCollection<Invoice>("invoices");
   const [tab, setTab] = useState("All");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -171,12 +199,23 @@ export default function SalesScreen() {
         showStar={false}
         actions={
           <>
-            <Button variant="outline" size="sm">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                downloadCsvTemplate("invoices-template.csv", invoiceCsvHeaders, [
+                  "INV-2026-152", "15 Jun 2026", "30 Jun 2026", "ABC Pvt Ltd",
+                  "Direct", "Sent", "₹0", "₹0", "₹0",
+                ])
+              }
+            >
               <Download size={16} /> Download Template
             </Button>
-            <Button variant="outline" size="sm">
-              <Upload size={16} /> Upload CSV
-            </Button>
+            <UploadButton<Invoice>
+              label="Upload CSV"
+              build={buildImportedInvoice}
+              onImport={(records) => setItems([...records, ...invoices])}
+            />
             <Menu
               align="right"
               widthClass="w-52"

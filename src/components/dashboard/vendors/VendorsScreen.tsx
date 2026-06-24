@@ -6,7 +6,6 @@ import {
   Filter,
   Plus,
   Download,
-  Upload,
   Users,
   BadgeCheck,
   Receipt,
@@ -50,7 +49,42 @@ import {
   type VendorStatus,
 } from "@/data/vendors";
 import { useCollection } from "@/lib/store/dataStore";
-import { exportCsv } from "@/lib/exportCsv";
+import { downloadCsvTemplate } from "@/lib/exportCsv";
+import UploadButton from "@/components/ui/UploadButton";
+
+const vendorCsvHeaders = [
+  "Name", "GSTIN", "City", "Contact Name", "Email", "Phone", "Spend", "Payable", "Status",
+];
+
+function vendorInitials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  return (parts.length === 1 ? parts[0].slice(0, 2) : parts[0][0] + parts[1][0]).toUpperCase();
+}
+
+function buildImportedVendor(row: Record<string, string>): Vendor | null {
+  const name = (row["Name"] ?? row["name"] ?? "").trim();
+  if (!name) return null;
+  const rawStatus = (row["Status"] ?? "").trim();
+  const status: VendorStatus =
+    rawStatus === "Inactive" || rawStatus === "Overdue" ? rawStatus : "Active";
+  return {
+    name,
+    initials: vendorInitials(name),
+    preferred: false,
+    gstin: row["GSTIN"]?.trim() || "—",
+    city: row["City"]?.trim() || "—",
+    contactName: row["Contact Name"]?.trim() || row["Contact"]?.trim() || "—",
+    email: row["Email"]?.trim() || "—",
+    phone: row["Phone"]?.trim() || "—",
+    spend: row["Spend"]?.trim() || "₹0",
+    spendPct: "0% of total",
+    payable: row["Payable"]?.trim() || "₹0",
+    payableNote: "Imported",
+    status,
+    isNew: true,
+  };
+}
 
 const statusTone: Record<VendorStatus, "success" | "neutral" | "danger"> = {
   Active: "success",
@@ -101,7 +135,7 @@ const quickActions: { icon: LucideIcon; label: string }[] = [
 ];
 
 export default function VendorsScreen() {
-  const { items: vendors, add, remove } = useCollection<Vendor>("vendors");
+  const { items: vendors, add, remove, setItems } = useCollection<Vendor>("vendors");
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState("All Vendors");
   const [createOpen, setCreateOpen] = useState(false);
@@ -130,28 +164,20 @@ export default function VendorsScreen() {
               variant="outline"
               size="sm"
               onClick={() =>
-                exportCsv<Vendor>(
-                  "vendors.csv",
-                  [
-                    { key: "name", header: "Name" },
-                    { key: "gstin", header: "GSTIN" },
-                    { key: "city", header: "City" },
-                    { key: "contactName", header: "Contact Name" },
-                    { key: "email", header: "Email" },
-                    { key: "phone", header: "Phone" },
-                    { key: "spend", header: "Spend" },
-                    { key: "payable", header: "Payable" },
-                    { key: "status", header: "Status" },
-                  ],
-                  filtered
-                )
+                downloadCsvTemplate("vendors-template.csv", vendorCsvHeaders, [
+                  "Sharma Supplies", "27SHARM1234F1Z5", "Mumbai, Maharashtra",
+                  "Vikram Sharma", "vikram@sharmasupplies.com", "+91 98765 43210",
+                  "₹0", "₹0", "Active",
+                ])
               }
             >
               <Download size={16} /> Download Template
             </Button>
-            <Button variant="outline" size="sm">
-              <Upload size={16} /> Upload CSV
-            </Button>
+            <UploadButton<Vendor>
+              label="Upload CSV"
+              build={buildImportedVendor}
+              onImport={(records) => setItems([...records, ...vendors])}
+            />
             <Button variant="bronze" size="sm" onClick={() => setCreateOpen(true)}>
               <Plus size={16} /> Create Vendor
             </Button>

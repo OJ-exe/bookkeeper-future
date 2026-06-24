@@ -5,7 +5,6 @@ import {
   Search,
   Filter,
   Plus,
-  Upload,
   ChevronLeft,
   ChevronRight,
   MoreVertical,
@@ -38,6 +37,28 @@ import {
   type TxnStatus,
 } from "@/data/banking";
 import { useCollection } from "@/lib/store/dataStore";
+import UploadButton from "@/components/ui/UploadButton";
+
+const txnStatuses: TxnStatus[] = ["Matched", "Unmatched", "Excluded"];
+
+function buildImportedBankTxn(row: Record<string, string>): BankTxn | null {
+  const description = (row["Description"] ?? row["description"] ?? "").trim();
+  if (!description) return null;
+  const rawKind = (row["Type"] ?? "").trim();
+  const kind: BankTxn["kind"] = rawKind === "Outflow" ? "Outflow" : "Inflow";
+  const rawStatus = (row["Status"] ?? "").trim() as TxnStatus;
+  const status: TxnStatus = txnStatuses.includes(rawStatus) ? rawStatus : "Unmatched";
+  return {
+    id: `TXN-${Math.floor(1000 + Math.random() * 9000)}`,
+    date: row["Date"]?.trim() || "—",
+    description,
+    reference: row["Reference"]?.trim() || "—",
+    kind,
+    amount: row["Amount"]?.trim() || "₹0",
+    account: row["Account"]?.trim() || bankAccounts[0].name,
+    status,
+  };
+}
 
 const statusTone: Record<TxnStatus, "success" | "warning" | "neutral"> = {
   Matched: "success",
@@ -69,7 +90,7 @@ function tabPredicate(tab: string, txn: BankTxn): boolean {
 }
 
 export default function BankingScreen() {
-  const { items: bankTxns, add, remove } = useCollection<BankTxn>("bankTxns");
+  const { items: bankTxns, add, remove, setItems } = useCollection<BankTxn>("bankTxns");
   const [tab, setTab] = useState("All Transactions");
   const [query, setQuery] = useState("");
   const [account, setAccount] = useState("All");
@@ -101,9 +122,11 @@ export default function BankingScreen() {
         showStar={false}
         actions={
           <>
-            <Button variant="outline" size="sm">
-              <Upload size={16} /> Import Statement
-            </Button>
+            <UploadButton<BankTxn>
+              label="Import Statement"
+              build={buildImportedBankTxn}
+              onImport={(records) => setItems([...records, ...bankTxns])}
+            />
             <Button variant="outline" size="sm" onClick={() => setBankOpen(true)}>
               <Plus size={16} /> Add Bank
             </Button>

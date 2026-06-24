@@ -6,7 +6,6 @@ import {
   Filter,
   Plus,
   Download,
-  Upload,
   ChevronLeft,
   ChevronRight,
   MoreVertical,
@@ -32,9 +31,48 @@ import { Menu, MenuItem, MenuLabel, MenuDivider } from "@/components/ui/Menu";
 
 import CreateOrderModal from "@/components/dashboard/orders/CreateOrderModal";
 
-import { orderTabs, type Order, type OrderStatus } from "@/data/orders";
+import {
+  orderTabs,
+  type Order,
+  type OrderStatus,
+  type OrderKind,
+} from "@/data/orders";
 import { useCollection } from "@/lib/store/dataStore";
-import { exportCsv } from "@/lib/exportCsv";
+import { exportCsv, downloadCsvTemplate } from "@/lib/exportCsv";
+import UploadButton from "@/components/ui/UploadButton";
+
+const orderCsvHeaders = [
+  "Order Number", "Order Date", "Expected Date", "Party",
+  "Type", "Status", "Total", "Fulfilled",
+];
+
+const orderStatuses: OrderStatus[] = [
+  "Open", "Partially Fulfilled", "Fulfilled", "Cancelled", "Draft",
+];
+
+function buildImportedOrder(row: Record<string, string>): Order | null {
+  const party = (row["Party"] ?? row["party"] ?? "").trim();
+  const number =
+    row["Order Number"]?.trim() ||
+    `ORD-2026-${Math.floor(100 + Math.random() * 900)}`;
+  if (!party && !row["Order Number"]?.trim()) return null;
+  const rawKind = (row["Type"] ?? "").trim();
+  const kind: OrderKind = rawKind === "Purchase Order" ? "Purchase Order" : "Sales Order";
+  const rawStatus = (row["Status"] ?? "").trim() as OrderStatus;
+  const status: OrderStatus = orderStatuses.includes(rawStatus) ? rawStatus : "Open";
+  const total = row["Total"]?.trim() || "₹0";
+  return {
+    number,
+    date: row["Order Date"]?.trim() || "—",
+    expectedDate: row["Expected Date"]?.trim() || "—",
+    party: party || "—",
+    kind,
+    status,
+    total,
+    fulfilled: row["Fulfilled"]?.trim() || "0%",
+    value: total,
+  };
+}
 
 const statusTone: Record<OrderStatus, "success" | "warning" | "danger" | "info" | "neutral"> = {
   Open: "info",
@@ -64,7 +102,7 @@ function tabPredicate(tab: string, order: Order): boolean {
 }
 
 export default function OrdersScreen() {
-  const { items: orders, add, remove } = useCollection<Order>("orders");
+  const { items: orders, add, remove, setItems } = useCollection<Order>("orders");
   const [tab, setTab] = useState("All");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -113,12 +151,23 @@ export default function OrdersScreen() {
         showStar={false}
         actions={
           <>
-            <Button variant="outline" size="sm">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                downloadCsvTemplate("orders-template.csv", orderCsvHeaders, [
+                  "ORD-2026-125", "15 Jun 2026", "30 Jun 2026", "ABC Pvt Ltd",
+                  "Sales Order", "Open", "₹0", "0%",
+                ])
+              }
+            >
               <Download size={16} /> Download Template
             </Button>
-            <Button variant="outline" size="sm">
-              <Upload size={16} /> Upload CSV
-            </Button>
+            <UploadButton<Order>
+              label="Upload CSV"
+              build={buildImportedOrder}
+              onImport={(records) => setItems([...records, ...orders])}
+            />
             <Button variant="bronze" size="sm" onClick={() => setCreateOpen(true)}>
               <Plus size={16} /> Create Order
             </Button>

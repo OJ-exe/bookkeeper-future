@@ -10,7 +10,6 @@ import {
   BookText,
   Download,
   FileDown,
-  Upload,
   Layers,
   Wallet,
   Scale,
@@ -46,7 +45,31 @@ import {
   type AccountType,
 } from "@/data/accounts";
 import { useCollection } from "@/lib/store/dataStore";
-import { exportCsv } from "@/lib/exportCsv";
+import { exportCsv, downloadCsvTemplate } from "@/lib/exportCsv";
+import UploadButton from "@/components/ui/UploadButton";
+
+const accountCsvHeaders = [
+  "Code", "Name", "Type", "Subtype", "Balance", "Linked", "Note",
+];
+
+const accountTypes: AccountType[] = ["Asset", "Liability", "Income", "Expense"];
+
+function buildImportedAccount(row: Record<string, string>): Account | null {
+  const name = (row["Name"] ?? row["name"] ?? "").trim();
+  if (!name) return null;
+  const rawType = (row["Type"] ?? "").trim() as AccountType;
+  const type: AccountType = accountTypes.includes(rawType) ? rawType : "Asset";
+  const linkedParsed = parseInt((row["Linked"] ?? "").trim(), 10);
+  return {
+    code: row["Code"]?.trim() || "—",
+    name,
+    type,
+    subtype: row["Subtype"]?.trim() || "—",
+    balance: row["Balance"]?.trim() || "₹0.00",
+    linked: Number.isNaN(linkedParsed) ? 0 : linkedParsed,
+    note: row["Note"]?.trim() || "Default account",
+  };
+}
 
 const typeIcon: Record<AccountType, LucideIcon> = {
   Asset: Wallet,
@@ -86,7 +109,7 @@ function chipPredicate(chip: string, a: Account): boolean {
 }
 
 export default function AccountsScreen() {
-  const { items: accounts, add, remove } = useCollection<Account>("accounts");
+  const { items: accounts, add, remove, setItems } = useCollection<Account>("accounts");
   const [query, setQuery] = useState("");
   const [chip, setChip] = useState("All Types");
   const [group, setGroup] = useState<string | null>(null);
@@ -144,12 +167,23 @@ export default function AccountsScreen() {
             >
               <Download size={16} /> Export Accounts
             </Button>
-            <Button variant="outline" size="sm">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                downloadCsvTemplate("chart-of-accounts-template.csv", accountCsvHeaders, [
+                  "1001", "Accounts Receivable", "Asset", "Current Assets",
+                  "₹0.00", "0", "Default account",
+                ])
+              }
+            >
               <FileDown size={16} /> Download Template
             </Button>
-            <Button variant="outline" size="sm">
-              <Upload size={16} /> Upload CSV
-            </Button>
+            <UploadButton<Account>
+              label="Upload CSV"
+              build={buildImportedAccount}
+              onImport={(records) => setItems([...records, ...accounts])}
+            />
             <Button variant="bronze" size="sm" onClick={() => setCreateOpen(true)}>
               <Plus size={16} /> Create Account
             </Button>

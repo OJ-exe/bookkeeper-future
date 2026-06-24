@@ -6,7 +6,6 @@ import {
   Filter,
   Plus,
   Download,
-  Upload,
   ChevronLeft,
   ChevronRight,
   MoreVertical,
@@ -37,9 +36,38 @@ import {
   type Payment,
   type PaymentStatus,
   type PaymentDirection,
+  type PaymentMethod,
 } from "@/data/payments";
 import { useCollection } from "@/lib/store/dataStore";
 import { exportCsv } from "@/lib/exportCsv";
+import UploadButton from "@/components/ui/UploadButton";
+
+const paymentStatuses: PaymentStatus[] = ["Completed", "Pending", "Failed", "Scheduled"];
+const paymentMethods: PaymentMethod[] = ["Bank Transfer", "UPI", "Cheque", "Card", "Cash"];
+
+function buildImportedPayment(row: Record<string, string>): Payment | null {
+  const party = (row["Party"] ?? row["party"] ?? "").trim();
+  const id =
+    row["Payment ID"]?.trim() ||
+    `PMT-2026-${Math.floor(100 + Math.random() * 900)}`;
+  if (!party && !row["Payment ID"]?.trim()) return null;
+  const rawDirection = (row["Direction"] ?? "").trim();
+  const direction: PaymentDirection = rawDirection === "Made" ? "Made" : "Received";
+  const rawMethod = (row["Method"] ?? "").trim() as PaymentMethod;
+  const method: PaymentMethod = paymentMethods.includes(rawMethod) ? rawMethod : "Bank Transfer";
+  const rawStatus = (row["Status"] ?? "").trim() as PaymentStatus;
+  const status: PaymentStatus = paymentStatuses.includes(rawStatus) ? rawStatus : "Pending";
+  return {
+    id,
+    date: row["Date"]?.trim() || "—",
+    party: party || "—",
+    direction,
+    method,
+    reference: row["Reference"]?.trim() || "—",
+    status,
+    amount: row["Amount"]?.trim() || "₹0",
+  };
+}
 
 const statusTone: Record<PaymentStatus, "success" | "warning" | "danger" | "info" | "neutral"> = {
   Completed: "success",
@@ -78,7 +106,7 @@ function tabPredicate(tab: string, payment: Payment): boolean {
 }
 
 export default function PaymentsScreen() {
-  const { items: payments, add, remove } = useCollection<Payment>("payments");
+  const { items: payments, add, remove, setItems } = useCollection<Payment>("payments");
   const [tab, setTab] = useState("All");
   const [query, setQuery] = useState("");
   const [method, setMethod] = useState("All Methods");
@@ -109,9 +137,11 @@ export default function PaymentsScreen() {
             <Button variant="outline" size="sm">
               <Download size={16} /> Export
             </Button>
-            <Button variant="outline" size="sm">
-              <Upload size={16} /> Import
-            </Button>
+            <UploadButton<Payment>
+              label="Import"
+              build={buildImportedPayment}
+              onImport={(records) => setItems([...records, ...payments])}
+            />
             <Button variant="bronze" size="sm" onClick={() => setCreateOpen(true)}>
               <Plus size={16} /> Record Payment
             </Button>

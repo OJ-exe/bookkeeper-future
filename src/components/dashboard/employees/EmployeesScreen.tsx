@@ -6,7 +6,6 @@ import {
   Filter,
   Plus,
   Download,
-  Upload,
   Users,
   UserCheck,
   UserMinus,
@@ -37,8 +36,44 @@ import {
   departments,
   type Employee,
   type EmployeeStatus,
+  type Department,
 } from "@/data/employees";
 import { useCollection } from "@/lib/store/dataStore";
+import { downloadCsvTemplate } from "@/lib/exportCsv";
+import UploadButton from "@/components/ui/UploadButton";
+
+const employeeCsvHeaders = [
+  "Code", "Name", "Department", "Designation", "Email", "Phone", "CTC", "Status",
+];
+
+const employeeStatuses: EmployeeStatus[] = ["Active", "On Leave", "Inactive"];
+
+function employeeInitials(name: string) {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "?";
+  return (parts.length === 1 ? parts[0].slice(0, 2) : parts[0][0] + parts[1][0]).toUpperCase();
+}
+
+function buildImportedEmployee(row: Record<string, string>): Employee | null {
+  const name = (row["Name"] ?? row["name"] ?? "").trim();
+  if (!name) return null;
+  const rawDept = (row["Department"] ?? "").trim() as Department;
+  const department: Department = departments.includes(rawDept) ? rawDept : departments[0];
+  const rawStatus = (row["Status"] ?? "").trim() as EmployeeStatus;
+  const status: EmployeeStatus = employeeStatuses.includes(rawStatus) ? rawStatus : "Active";
+  return {
+    code: row["Code"]?.trim() || `EMP-${Math.floor(100 + Math.random() * 900)}`,
+    name,
+    initials: employeeInitials(name),
+    department,
+    designation: row["Designation"]?.trim() || "—",
+    email: row["Email"]?.trim() || "—",
+    phone: row["Phone"]?.trim() || "—",
+    ctc: row["CTC"]?.trim() || "₹0",
+    status,
+    joinedNew: true,
+  };
+}
 
 const statusTone: Record<EmployeeStatus, "success" | "warning" | "neutral"> = {
   Active: "success",
@@ -64,7 +99,7 @@ function tabPredicate(tab: string, e: Employee): boolean {
 const departmentOptions = ["All Departments", ...departments];
 
 export default function EmployeesScreen() {
-  const { items: employees, add, remove } = useCollection<Employee>("employees");
+  const { items: employees, add, remove, setItems } = useCollection<Employee>("employees");
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState("All Employees");
   const [department, setDepartment] = useState("All Departments");
@@ -92,12 +127,23 @@ export default function EmployeesScreen() {
         description="Manage employee master data, departments, compensation, and payroll context."
         actions={
           <>
-            <Button variant="outline" size="sm">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                downloadCsvTemplate("employees-template.csv", employeeCsvHeaders, [
+                  "EMP-001", "Rajesh Kumar", "Sales", "Sales Manager",
+                  "rajesh.kumar@company.com", "+91 98765 43210", "₹14.4L", "Active",
+                ])
+              }
+            >
               <Download size={16} /> Download Template
             </Button>
-            <Button variant="outline" size="sm">
-              <Upload size={16} /> Upload CSV
-            </Button>
+            <UploadButton<Employee>
+              label="Upload CSV"
+              build={buildImportedEmployee}
+              onImport={(records) => setItems([...records, ...employees])}
+            />
             <Button variant="bronze" size="sm" onClick={() => setAddOpen(true)}>
               <Plus size={16} /> Add Employee
             </Button>

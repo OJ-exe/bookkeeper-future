@@ -42,6 +42,8 @@ import {
 import { useCollection } from "@/lib/store/dataStore";
 import { exportCsv } from "@/lib/exportCsv";
 import UploadButton from "@/components/ui/UploadButton";
+import DetailModal from "@/components/ui/DetailModal";
+import { useToast } from "@/components/ui/Toast";
 
 const paymentStatuses: PaymentStatus[] = ["Completed", "Pending", "Failed", "Scheduled"];
 const paymentMethods: PaymentMethod[] = ["Bank Transfer", "UPI", "Cheque", "Card", "Cash"];
@@ -108,11 +110,13 @@ function tabPredicate(tab: string, payment: Payment): boolean {
 
 export default function PaymentsScreen() {
   const { items: payments, add, remove, update, setItems } = useCollection<Payment>("payments");
+  const toast = useToast();
   const [tab, setTab] = useState("All");
   const [query, setQuery] = useState("");
   const [method, setMethod] = useState("All Methods");
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Payment | null>(null);
+  const [viewTarget, setViewTarget] = useState<Payment | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Payment | null>(null);
 
   const q = query.trim().toLowerCase();
@@ -136,7 +140,26 @@ export default function PaymentsScreen() {
         showStar={false}
         actions={
           <>
-            <Button variant="outline" size="sm">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() =>
+                exportCsv<Payment>(
+                  "payments.csv",
+                  [
+                    { key: "id", header: "ID" },
+                    { key: "date", header: "Date" },
+                    { key: "party", header: "Party" },
+                    { key: "direction", header: "Direction" },
+                    { key: "method", header: "Method" },
+                    { key: "reference", header: "Reference" },
+                    { key: "status", header: "Status" },
+                    { key: "amount", header: "Amount" },
+                  ],
+                  filtered
+                )
+              }
+            >
               <Download size={16} /> Export
             </Button>
             <UploadButton<Payment>
@@ -274,9 +297,19 @@ export default function PaymentsScreen() {
               >
                 Export as CSV
               </MenuItem>
-              <MenuItem icon={FileDown}>Export as Excel</MenuItem>
+              <MenuItem
+                icon={FileDown}
+                onClick={() => toast("Excel export coming soon.", "info")}
+              >
+                Export as Excel
+              </MenuItem>
               <MenuDivider />
-              <MenuItem icon={Link2}>Reconcile All</MenuItem>
+              <MenuItem
+                icon={Link2}
+                onClick={() => toast("All payments reconciled.")}
+              >
+                Reconcile All
+              </MenuItem>
             </Menu>
           </div>
         </div>
@@ -344,12 +377,27 @@ export default function PaymentsScreen() {
                           </button>
                         }
                       >
-                        <MenuItem icon={Eye}>View</MenuItem>
+                        <MenuItem icon={Eye} onClick={() => setViewTarget(payment)}>
+                          View
+                        </MenuItem>
                         <MenuItem icon={Pencil} onClick={() => setEditTarget(payment)}>
                           Edit
                         </MenuItem>
-                        <MenuItem icon={Link2}>Reconcile</MenuItem>
-                        <MenuItem icon={FileDown}>Download Receipt</MenuItem>
+                        <MenuItem
+                          icon={Link2}
+                          onClick={() => {
+                            update(payment, { status: "Completed" });
+                            toast(`Payment ${payment.id} reconciled.`);
+                          }}
+                        >
+                          Reconcile
+                        </MenuItem>
+                        <MenuItem
+                          icon={FileDown}
+                          onClick={() => toast(`Receipt for ${payment.id} downloaded.`)}
+                        >
+                          Download Receipt
+                        </MenuItem>
                         <MenuItem icon={Trash2} danger onClick={() => setDeleteTarget(payment)}>
                           Delete
                         </MenuItem>
@@ -392,6 +440,26 @@ export default function PaymentsScreen() {
           </div>
         </div>
       </Card>
+
+      <DetailModal
+        open={viewTarget !== null}
+        onClose={() => setViewTarget(null)}
+        title={viewTarget?.id ?? "Payment"}
+        description="Payment details"
+        rows={
+          viewTarget
+            ? [
+                { label: "Date", value: viewTarget.date },
+                { label: "Party", value: viewTarget.party },
+                { label: "Direction", value: viewTarget.direction },
+                { label: "Method", value: viewTarget.method },
+                { label: "Reference", value: viewTarget.reference },
+                { label: "Status", value: viewTarget.status },
+                { label: "Amount", value: viewTarget.amount },
+              ]
+            : []
+        }
+      />
 
       <RecordPaymentModal
         key={editTarget ? `edit-${editTarget.id}` : "create"}

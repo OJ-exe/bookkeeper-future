@@ -38,6 +38,8 @@ import {
   type PayrollStatus,
 } from "@/data/payroll";
 import { useCollection } from "@/lib/store/dataStore";
+import DetailModal from "@/components/ui/DetailModal";
+import { useToast } from "@/components/ui/Toast";
 
 const statusTone: Record<PayrollStatus, "success" | "info" | "warning" | "neutral"> = {
   Paid: "success",
@@ -63,10 +65,12 @@ function tabPredicate(tab: string, run: PayrollRun): boolean {
 
 export default function PayrollScreen() {
   const { items: payrollRuns, add, remove, update } = useCollection<PayrollRun>("payroll");
+  const toast = useToast();
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState("All Runs");
   const [runOpen, setRunOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<PayrollRun | null>(null);
+  const [viewTarget, setViewTarget] = useState<PayrollRun | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<PayrollRun | null>(null);
 
   const q = query.trim().toLowerCase();
@@ -86,10 +90,18 @@ export default function PayrollScreen() {
         description="Run payroll, review salary workings, manage deductions, and track payouts."
         actions={
           <>
-            <Button variant="outline" size="sm">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => toast("Payroll export coming soon.", "info")}
+            >
               <Download size={16} /> Export
             </Button>
-            <Button variant="outline" size="sm">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => toast("Opening salary report…", "info")}
+            >
               <FileText size={16} /> Salary Report
             </Button>
             <Button variant="bronze" size="sm" onClick={() => setRunOpen(true)}>
@@ -237,12 +249,27 @@ export default function PayrollScreen() {
                           </button>
                         }
                       >
-                        <MenuItem icon={Eye}>View Workings</MenuItem>
+                        <MenuItem icon={Eye} onClick={() => setViewTarget(run)}>
+                          View Workings
+                        </MenuItem>
                         <MenuItem icon={Pencil} onClick={() => setEditTarget(run)}>
                           Edit
                         </MenuItem>
-                        <MenuItem icon={FileDown}>Download Payslips</MenuItem>
-                        <MenuItem icon={RefreshCw}>Reprocess</MenuItem>
+                        <MenuItem
+                          icon={FileDown}
+                          onClick={() => toast(`Payslips for ${run.id} downloaded.`)}
+                        >
+                          Download Payslips
+                        </MenuItem>
+                        <MenuItem
+                          icon={RefreshCw}
+                          onClick={() => {
+                            update(run, { status: "Processing" });
+                            toast(`Reprocessing ${run.id}…`, "info");
+                          }}
+                        >
+                          Reprocess
+                        </MenuItem>
                         <MenuItem icon={Trash2} danger onClick={() => setDeleteTarget(run)}>
                           Delete
                         </MenuItem>
@@ -282,6 +309,26 @@ export default function PayrollScreen() {
           </div>
         </div>
       </Card>
+
+      <DetailModal
+        open={viewTarget !== null}
+        onClose={() => setViewTarget(null)}
+        title={viewTarget?.id ?? "Payroll Run"}
+        description="Payroll workings"
+        rows={
+          viewTarget
+            ? [
+                { label: "Period", value: viewTarget.period },
+                { label: "Employees", value: viewTarget.employees },
+                { label: "Gross", value: viewTarget.gross },
+                { label: "Deductions", value: viewTarget.deductions },
+                { label: "Net Pay", value: viewTarget.netPay },
+                { label: "Status", value: viewTarget.status },
+                { label: "Pay Date", value: viewTarget.payDate },
+              ]
+            : []
+        }
+      />
 
       <RunPayrollModal
         key={editTarget ? `edit-${editTarget.id}` : "create"}

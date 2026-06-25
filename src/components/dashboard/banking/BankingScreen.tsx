@@ -18,6 +18,7 @@ import {
   Scissors,
   Ban,
   Pencil,
+  Eye,
   Trash2,
 } from "lucide-react";
 
@@ -39,6 +40,8 @@ import {
 } from "@/data/banking";
 import { useCollection } from "@/lib/store/dataStore";
 import UploadButton from "@/components/ui/UploadButton";
+import DetailModal from "@/components/ui/DetailModal";
+import { useToast } from "@/components/ui/Toast";
 
 const txnStatuses: TxnStatus[] = ["Matched", "Unmatched", "Excluded"];
 
@@ -92,11 +95,13 @@ function tabPredicate(tab: string, txn: BankTxn): boolean {
 
 export default function BankingScreen() {
   const { items: bankTxns, add, remove, update, setItems } = useCollection<BankTxn>("bankTxns");
+  const toast = useToast();
   const [tab, setTab] = useState("All Transactions");
   const [query, setQuery] = useState("");
   const [account, setAccount] = useState("All");
   const [txnOpen, setTxnOpen] = useState(false);
   const [editTxn, setEditTxn] = useState<BankTxn | null>(null);
+  const [viewTxn, setViewTxn] = useState<BankTxn | null>(null);
   const [bankOpen, setBankOpen] = useState(false);
   const [deleteTxn, setDeleteTxn] = useState<BankTxn | null>(null);
 
@@ -204,7 +209,22 @@ export default function BankingScreen() {
                 {acc.bankName} · {acc.accountNo}
               </p>
               <p className="mt-auto pt-2 text-2xl font-bold text-fg">{acc.balance}</p>
-              <span className="text-xs font-medium text-bronze hover:opacity-80">
+              <span
+                role="button"
+                tabIndex={0}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  toast("Opening ledger…", "info");
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    toast("Opening ledger…", "info");
+                  }
+                }}
+                className="text-xs font-medium text-bronze hover:opacity-80 cursor-pointer"
+              >
                 View ledger
               </span>
             </button>
@@ -320,12 +340,36 @@ export default function BankingScreen() {
                           </button>
                         }
                       >
-                        <MenuItem icon={Link2}>Match</MenuItem>
+                        <MenuItem icon={Eye} onClick={() => setViewTxn(txn)}>
+                          View
+                        </MenuItem>
+                        <MenuItem
+                          icon={Link2}
+                          onClick={() => {
+                            update(txn, { status: "Matched" });
+                            toast("Transaction matched.");
+                          }}
+                        >
+                          Match
+                        </MenuItem>
                         <MenuItem icon={Pencil} onClick={() => setEditTxn(txn)}>
                           Edit
                         </MenuItem>
-                        <MenuItem icon={Scissors}>Split</MenuItem>
-                        <MenuItem icon={Ban}>Exclude</MenuItem>
+                        <MenuItem
+                          icon={Scissors}
+                          onClick={() => toast("Split transaction — coming soon.", "info")}
+                        >
+                          Split
+                        </MenuItem>
+                        <MenuItem
+                          icon={Ban}
+                          onClick={() => {
+                            update(txn, { status: "Excluded" });
+                            toast("Transaction excluded.");
+                          }}
+                        >
+                          Exclude
+                        </MenuItem>
                         <MenuItem icon={Trash2} danger onClick={() => setDeleteTxn(txn)}>
                           Delete
                         </MenuItem>
@@ -368,6 +412,26 @@ export default function BankingScreen() {
           </div>
         </div>
       </Card>
+
+      <DetailModal
+        open={viewTxn !== null}
+        onClose={() => setViewTxn(null)}
+        title={viewTxn?.description ?? "Transaction"}
+        description="Transaction details"
+        rows={
+          viewTxn
+            ? [
+                { label: "Date", value: viewTxn.date },
+                { label: "Description", value: viewTxn.description },
+                { label: "Reference", value: viewTxn.reference },
+                { label: "Account", value: viewTxn.account },
+                { label: "Type", value: viewTxn.kind },
+                { label: "Amount", value: viewTxn.amount },
+                { label: "Status", value: viewTxn.status },
+              ]
+            : []
+        }
+      />
 
       <AddTransactionModal
         key={editTxn ? `edit-${editTxn.id}` : "create"}

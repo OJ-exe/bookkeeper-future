@@ -41,6 +41,9 @@ import {
 import { useCollection } from "@/lib/store/dataStore";
 import { downloadCsvTemplate } from "@/lib/exportCsv";
 import UploadButton from "@/components/ui/UploadButton";
+import DetailModal from "@/components/ui/DetailModal";
+import { useToast } from "@/components/ui/Toast";
+import { useRouter } from "next/navigation";
 
 const employeeCsvHeaders = [
   "Code", "Name", "Department", "Designation", "Email", "Phone", "CTC", "Status",
@@ -99,12 +102,15 @@ function tabPredicate(tab: string, e: Employee): boolean {
 const departmentOptions = ["All Departments", ...departments];
 
 export default function EmployeesScreen() {
-  const { items: employees, add, remove, update, setItems } = useCollection<Employee>("employees");
+  const { items: employees, add, update, setItems } = useCollection<Employee>("employees");
+  const toast = useToast();
+  const router = useRouter();
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState("All Employees");
   const [department, setDepartment] = useState("All Departments");
   const [addOpen, setAddOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Employee | null>(null);
+  const [viewTarget, setViewTarget] = useState<Employee | null>(null);
   const [deactivateTarget, setDeactivateTarget] = useState<Employee | null>(null);
 
   const q = query.trim().toLowerCase();
@@ -297,11 +303,21 @@ export default function EmployeesScreen() {
                           </button>
                         }
                       >
-                        <MenuItem icon={Eye}>View</MenuItem>
+                        <MenuItem icon={Eye} onClick={() => setViewTarget(e)}>
+                          View
+                        </MenuItem>
                         <MenuItem icon={Pencil} onClick={() => setEditTarget(e)}>
                           Edit
                         </MenuItem>
-                        <MenuItem icon={Wallet}>Run Payroll</MenuItem>
+                        <MenuItem
+                          icon={Wallet}
+                          onClick={() => {
+                            router.push("/dashboard/payroll");
+                            toast("Opening payroll…", "info");
+                          }}
+                        >
+                          Run Payroll
+                        </MenuItem>
                         <MenuItem
                           icon={Trash2}
                           danger
@@ -350,6 +366,26 @@ export default function EmployeesScreen() {
       </Card>
 
       {/* Modals */}
+      <DetailModal
+        open={viewTarget !== null}
+        onClose={() => setViewTarget(null)}
+        title={viewTarget?.name ?? "Employee"}
+        description="Employee details"
+        rows={
+          viewTarget
+            ? [
+                { label: "Code", value: viewTarget.code },
+                { label: "Department", value: viewTarget.department },
+                { label: "Designation", value: viewTarget.designation },
+                { label: "Email", value: viewTarget.email },
+                { label: "Phone", value: viewTarget.phone },
+                { label: "CTC", value: viewTarget.ctc },
+                { label: "Status", value: viewTarget.status },
+              ]
+            : []
+        }
+      />
+
       <AddEmployeeModal
         key={editTarget ? `edit-${editTarget.code}` : "create"}
         open={addOpen || editTarget !== null}
@@ -376,7 +412,10 @@ export default function EmployeesScreen() {
             <button
               type="button"
               onClick={() => {
-                if (deactivateTarget) remove(deactivateTarget);
+                if (deactivateTarget) {
+                  update(deactivateTarget, { status: "Inactive" });
+                  toast(`${deactivateTarget.name} deactivated.`);
+                }
                 setDeactivateTarget(null);
               }}
               className="h-11 px-5 rounded-xl bg-danger text-white text-sm font-medium hover:opacity-90 transition"

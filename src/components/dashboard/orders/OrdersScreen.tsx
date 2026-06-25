@@ -37,9 +37,12 @@ import {
   type OrderStatus,
   type OrderKind,
 } from "@/data/orders";
+import { type Invoice } from "@/data/salesDocuments";
 import { useCollection } from "@/lib/store/dataStore";
 import { exportCsv, downloadCsvTemplate } from "@/lib/exportCsv";
 import UploadButton from "@/components/ui/UploadButton";
+import DetailModal from "@/components/ui/DetailModal";
+import { useToast } from "@/components/ui/Toast";
 
 const orderCsvHeaders = [
   "Order Number", "Order Date", "Expected Date", "Party",
@@ -103,12 +106,32 @@ function tabPredicate(tab: string, order: Order): boolean {
 
 export default function OrdersScreen() {
   const { items: orders, add, remove, update, setItems } = useCollection<Order>("orders");
+  const { add: addInvoice } = useCollection<Invoice>("invoices");
+  const toast = useToast();
   const [tab, setTab] = useState("All");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Order | null>(null);
+  const [viewTarget, setViewTarget] = useState<Order | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Order | null>(null);
+
+  function convertToInvoice(order: Order) {
+    const invoice: Invoice = {
+      number: `INV-2026-${Math.floor(100 + Math.random() * 900)}`,
+      date: order.date,
+      due: order.expectedDate,
+      customer: order.party,
+      source: order.number,
+      status: "Sent",
+      grandTotal: order.total,
+      netReceivable: order.total,
+      open: order.total,
+    };
+    addInvoice(invoice);
+    update(order, { status: "Fulfilled", fulfilled: "100%" });
+    toast(`Order ${order.number} converted to invoice.`);
+  }
 
   const q = query.trim().toLowerCase();
   const filtered = orders.filter((order) => {
@@ -380,8 +403,15 @@ export default function OrdersScreen() {
                             </button>
                           }
                         >
-                          <MenuItem icon={Eye}>View</MenuItem>
-                          <MenuItem icon={FileText}>Convert to Invoice</MenuItem>
+                          <MenuItem icon={Eye} onClick={() => setViewTarget(order)}>
+                            View
+                          </MenuItem>
+                          <MenuItem
+                            icon={FileText}
+                            onClick={() => convertToInvoice(order)}
+                          >
+                            Convert to Invoice
+                          </MenuItem>
                           <MenuItem icon={Pencil} onClick={() => setEditTarget(order)}>
                             Edit
                           </MenuItem>
@@ -431,6 +461,26 @@ export default function OrdersScreen() {
           </div>
         </div>
       </Card>
+
+      <DetailModal
+        open={viewTarget !== null}
+        onClose={() => setViewTarget(null)}
+        title={viewTarget?.number ?? "Order"}
+        description="Order details"
+        rows={
+          viewTarget
+            ? [
+                { label: "Order Date", value: viewTarget.date },
+                { label: "Expected", value: viewTarget.expectedDate },
+                { label: "Party", value: viewTarget.party },
+                { label: "Type", value: viewTarget.kind },
+                { label: "Status", value: viewTarget.status },
+                { label: "Total", value: viewTarget.total },
+                { label: "Fulfilled", value: viewTarget.fulfilled },
+              ]
+            : []
+        }
+      />
 
       <CreateOrderModal
         key={editTarget ? `edit-${editTarget.number}` : "create"}

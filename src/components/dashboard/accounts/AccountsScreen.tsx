@@ -7,6 +7,7 @@ import {
   Plus,
   Link2,
   MoreVertical,
+  Eye,
   BookText,
   Download,
   FileDown,
@@ -47,6 +48,8 @@ import {
 import { useCollection } from "@/lib/store/dataStore";
 import { exportCsv, downloadCsvTemplate } from "@/lib/exportCsv";
 import UploadButton from "@/components/ui/UploadButton";
+import DetailModal from "@/components/ui/DetailModal";
+import { useToast } from "@/components/ui/Toast";
 
 const accountCsvHeaders = [
   "Code", "Name", "Type", "Subtype", "Balance", "Linked", "Note",
@@ -110,11 +113,13 @@ function chipPredicate(chip: string, a: Account): boolean {
 
 export default function AccountsScreen() {
   const { items: accounts, add, remove, update, setItems } = useCollection<Account>("accounts");
+  const toast = useToast();
   const [query, setQuery] = useState("");
   const [chip, setChip] = useState("All Types");
   const [group, setGroup] = useState<string | null>(null);
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Account | null>(null);
+  const [viewTarget, setViewTarget] = useState<Account | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Account | null>(null);
 
   function selectChip(c: string) {
@@ -145,7 +150,11 @@ export default function AccountsScreen() {
         description="Manage your financial structure, tax mappings, payroll accounts, inventory ledgers and reporting accounts."
         actions={
           <>
-            <Button variant="outline" size="sm">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => toast("Opening accounts register…", "info")}
+            >
               <BookText size={16} /> Accounts Register
             </Button>
             <Button
@@ -360,10 +369,26 @@ export default function AccountsScreen() {
                                 </button>
                               }
                             >
+                              <MenuItem icon={Eye} onClick={() => setViewTarget(a)}>
+                                View
+                              </MenuItem>
                               <MenuItem icon={Pencil} onClick={() => setEditTarget(a)}>
                                 Edit
                               </MenuItem>
-                              <MenuItem icon={Copy}>Duplicate</MenuItem>
+                              <MenuItem
+                                icon={Copy}
+                                onClick={() => {
+                                  add({
+                                    ...a,
+                                    code: a.code ? a.code + "-COPY" : "",
+                                    name: a.name + " (Copy)",
+                                    linked: 0,
+                                  });
+                                  toast(`Duplicated ${a.name}.`);
+                                }}
+                              >
+                                Duplicate
+                              </MenuItem>
                               <MenuItem icon={Trash2} danger onClick={() => setDeleteTarget(a)}>
                                 Delete
                               </MenuItem>
@@ -417,6 +442,25 @@ export default function AccountsScreen() {
       </div>
 
       {/* Modals */}
+      <DetailModal
+        open={viewTarget !== null}
+        onClose={() => setViewTarget(null)}
+        title={viewTarget?.name ?? "Account"}
+        description="Account details"
+        rows={
+          viewTarget
+            ? [
+                { label: "Code", value: viewTarget.code || "—" },
+                { label: "Type", value: viewTarget.type },
+                { label: "Subtype", value: viewTarget.subtype },
+                { label: "Balance", value: viewTarget.balance },
+                { label: "Linked", value: viewTarget.linked },
+                { label: "Note", value: viewTarget.note },
+              ]
+            : []
+        }
+      />
+
       <CreateAccountModal
         key={editTarget ? `edit-${editTarget.code}` : "create"}
         open={createOpen || editTarget !== null}

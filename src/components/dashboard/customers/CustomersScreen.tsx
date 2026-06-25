@@ -55,6 +55,8 @@ import { useCollection } from "@/lib/store/dataStore";
 import { downloadCsvTemplate } from "@/lib/exportCsv";
 import { consumeCreate } from "@/lib/quickAction";
 import UploadButton from "@/components/ui/UploadButton";
+import DetailModal from "@/components/ui/DetailModal";
+import { useToast } from "@/components/ui/Toast";
 
 const customerCsvHeaders = [
   "Name", "GSTIN", "City", "Contact Name", "Email", "Phone", "Revenue", "Outstanding", "Status",
@@ -196,8 +198,10 @@ export default function CustomersScreen() {
   const { items: customers, add, remove, update, setItems } = useCollection<Customer>("customers");
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState("All Customers");
+  const toast = useToast();
   const [createOpen, setCreateOpen] = useState(() => consumeCreate("customers"));
   const [editTarget, setEditTarget] = useState<Customer | null>(null);
+  const [viewTarget, setViewTarget] = useState<Customer | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Customer | null>(null);
 
   const q = query.trim().toLowerCase();
@@ -493,11 +497,18 @@ export default function CustomersScreen() {
                               </button>
                             }
                           >
-                            <MenuItem icon={Eye}>View</MenuItem>
+                            <MenuItem icon={Eye} onClick={() => setViewTarget(c)}>
+                              View
+                            </MenuItem>
                             <MenuItem icon={Pencil} onClick={() => setEditTarget(c)}>
                               Edit
                             </MenuItem>
-                            <MenuItem icon={FileText}>Send Statement</MenuItem>
+                            <MenuItem
+                              icon={FileText}
+                              onClick={() => toast(`Statement sent to ${c.name}.`)}
+                            >
+                              Send Statement
+                            </MenuItem>
                             <MenuItem icon={Trash2} danger onClick={() => setDeleteTarget(c)}>
                               Delete
                             </MenuItem>
@@ -643,6 +654,27 @@ export default function CustomersScreen() {
       </Card>
 
       {/* Modals */}
+      <DetailModal
+        open={viewTarget !== null}
+        onClose={() => setViewTarget(null)}
+        title={viewTarget?.name ?? "Customer"}
+        description="Customer details"
+        rows={
+          viewTarget
+            ? [
+                { label: "GSTIN", value: viewTarget.gstin },
+                { label: "City", value: viewTarget.city },
+                { label: "Contact", value: viewTarget.contactName },
+                { label: "Email", value: viewTarget.email },
+                { label: "Phone", value: viewTarget.phone },
+                { label: "Revenue", value: viewTarget.revenue },
+                { label: "Outstanding", value: viewTarget.outstanding },
+                { label: "Status", value: viewTarget.status },
+              ]
+            : []
+        }
+      />
+
       <CreateCustomerModal
         key={editTarget ? `edit-${editTarget.name}` : "create"}
         open={createOpen || editTarget !== null}

@@ -21,21 +21,36 @@ function formatDate(raw: string) {
   return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+function toDateInput(raw: string) {
+  if (!raw || raw === "—") return "";
+  const d = new Date(raw);
+  return Number.isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10);
+}
+
+function unblank(v: string | undefined) {
+  return v && v !== "—" ? v : "";
+}
+
 export default function AddTransactionModal({
   open,
   onClose,
   onCreate,
+  editing,
+  onUpdate,
 }: {
   open: boolean;
   onClose: () => void;
   onCreate: (txn: BankTxn) => void;
+  editing?: BankTxn | null;
+  onUpdate?: (item: BankTxn, patch: Partial<BankTxn>) => void;
 }) {
-  const [account, setAccount] = useState(bankAccounts[0].name);
-  const [date, setDate] = useState("");
-  const [kind, setKind] = useState<BankTxn["kind"]>("Inflow");
-  const [description, setDescription] = useState("");
-  const [reference, setReference] = useState("");
-  const [amount, setAmount] = useState("");
+  const isEdit = !!editing;
+  const [account, setAccount] = useState(editing?.account ?? bankAccounts[0].name);
+  const [date, setDate] = useState(toDateInput(editing?.date ?? ""));
+  const [kind, setKind] = useState<BankTxn["kind"]>(editing?.kind ?? "Inflow");
+  const [description, setDescription] = useState(editing?.description ?? "");
+  const [reference, setReference] = useState(unblank(editing?.reference));
+  const [amount, setAmount] = useState(unblank(editing?.amount));
 
   function reset() {
     setAccount(bankAccounts[0].name);
@@ -49,6 +64,18 @@ export default function AddTransactionModal({
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (description.trim() === "" || amount.trim() === "") return;
+    if (isEdit && editing && onUpdate) {
+      onUpdate(editing, {
+        account,
+        date: formatDate(date),
+        kind,
+        description: description.trim(),
+        reference: reference.trim() || "—",
+        amount: formatAmount(amount),
+      });
+      onClose();
+      return;
+    }
     onCreate({
       id: `TXN-${Math.floor(100 + Math.random() * 900)}`,
       date: formatDate(date),
@@ -64,7 +91,7 @@ export default function AddTransactionModal({
   }
 
   function handleClose() {
-    reset();
+    if (!isEdit) reset();
     onClose();
   }
 
@@ -72,7 +99,7 @@ export default function AddTransactionModal({
     <Modal
       open={open}
       onClose={handleClose}
-      title="Add Transaction"
+      title={isEdit ? "Edit Transaction" : "Add Transaction"}
       description="Record a bank or cash transaction against your ledger."
       footer={
         <>
@@ -85,7 +112,7 @@ export default function AddTransactionModal({
             variant="bronze"
             disabled={description.trim() === "" || amount.trim() === ""}
           >
-            Add Transaction
+            {isEdit ? "Save Changes" : "Add Transaction"}
           </Button>
         </>
       }

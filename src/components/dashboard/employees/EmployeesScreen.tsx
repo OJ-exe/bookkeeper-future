@@ -99,11 +99,12 @@ function tabPredicate(tab: string, e: Employee): boolean {
 const departmentOptions = ["All Departments", ...departments];
 
 export default function EmployeesScreen() {
-  const { items: employees, add, remove, setItems } = useCollection<Employee>("employees");
+  const { items: employees, add, remove, update, setItems } = useCollection<Employee>("employees");
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState("All Employees");
   const [department, setDepartment] = useState("All Departments");
   const [addOpen, setAddOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<Employee | null>(null);
   const [deactivateTarget, setDeactivateTarget] = useState<Employee | null>(null);
 
   const q = query.trim().toLowerCase();
@@ -297,7 +298,9 @@ export default function EmployeesScreen() {
                         }
                       >
                         <MenuItem icon={Eye}>View</MenuItem>
-                        <MenuItem icon={Pencil}>Edit</MenuItem>
+                        <MenuItem icon={Pencil} onClick={() => setEditTarget(e)}>
+                          Edit
+                        </MenuItem>
                         <MenuItem icon={Wallet}>Run Payroll</MenuItem>
                         <MenuItem
                           icon={Trash2}
@@ -348,9 +351,15 @@ export default function EmployeesScreen() {
 
       {/* Modals */}
       <AddEmployeeModal
-        open={addOpen}
-        onClose={() => setAddOpen(false)}
+        key={editTarget ? `edit-${editTarget.code}` : "create"}
+        open={addOpen || editTarget !== null}
+        editing={editTarget}
+        onClose={() => {
+          setAddOpen(false);
+          setEditTarget(null);
+        }}
         onCreate={(employee) => add(employee)}
+        onUpdate={(item, patch) => update(item, patch)}
       />
 
       <Modal

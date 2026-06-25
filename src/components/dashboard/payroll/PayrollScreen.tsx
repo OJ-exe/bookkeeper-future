@@ -14,6 +14,7 @@ import {
   CalendarClock,
   MoreVertical,
   Eye,
+  Pencil,
   FileDown,
   RefreshCw,
   Trash2,
@@ -61,10 +62,11 @@ function tabPredicate(tab: string, run: PayrollRun): boolean {
 }
 
 export default function PayrollScreen() {
-  const { items: payrollRuns, add, remove } = useCollection<PayrollRun>("payroll");
+  const { items: payrollRuns, add, remove, update } = useCollection<PayrollRun>("payroll");
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState("All Runs");
   const [runOpen, setRunOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<PayrollRun | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<PayrollRun | null>(null);
 
   const q = query.trim().toLowerCase();
@@ -236,6 +238,9 @@ export default function PayrollScreen() {
                         }
                       >
                         <MenuItem icon={Eye}>View Workings</MenuItem>
+                        <MenuItem icon={Pencil} onClick={() => setEditTarget(run)}>
+                          Edit
+                        </MenuItem>
                         <MenuItem icon={FileDown}>Download Payslips</MenuItem>
                         <MenuItem icon={RefreshCw}>Reprocess</MenuItem>
                         <MenuItem icon={Trash2} danger onClick={() => setDeleteTarget(run)}>
@@ -279,9 +284,15 @@ export default function PayrollScreen() {
       </Card>
 
       <RunPayrollModal
-        open={runOpen}
-        onClose={() => setRunOpen(false)}
+        key={editTarget ? `edit-${editTarget.id}` : "create"}
+        open={runOpen || editTarget !== null}
+        editing={editTarget}
+        onClose={() => {
+          setRunOpen(false);
+          setEditTarget(null);
+        }}
         onCreate={(run) => add(run)}
+        onUpdate={(item, patch) => update(item, patch)}
       />
 
       <Modal

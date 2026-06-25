@@ -17,6 +17,7 @@ import {
   Link2,
   Scissors,
   Ban,
+  Pencil,
   Trash2,
 } from "lucide-react";
 
@@ -90,11 +91,12 @@ function tabPredicate(tab: string, txn: BankTxn): boolean {
 }
 
 export default function BankingScreen() {
-  const { items: bankTxns, add, remove, setItems } = useCollection<BankTxn>("bankTxns");
+  const { items: bankTxns, add, remove, update, setItems } = useCollection<BankTxn>("bankTxns");
   const [tab, setTab] = useState("All Transactions");
   const [query, setQuery] = useState("");
   const [account, setAccount] = useState("All");
   const [txnOpen, setTxnOpen] = useState(false);
+  const [editTxn, setEditTxn] = useState<BankTxn | null>(null);
   const [bankOpen, setBankOpen] = useState(false);
   const [deleteTxn, setDeleteTxn] = useState<BankTxn | null>(null);
 
@@ -319,6 +321,9 @@ export default function BankingScreen() {
                         }
                       >
                         <MenuItem icon={Link2}>Match</MenuItem>
+                        <MenuItem icon={Pencil} onClick={() => setEditTxn(txn)}>
+                          Edit
+                        </MenuItem>
                         <MenuItem icon={Scissors}>Split</MenuItem>
                         <MenuItem icon={Ban}>Exclude</MenuItem>
                         <MenuItem icon={Trash2} danger onClick={() => setDeleteTxn(txn)}>
@@ -365,9 +370,15 @@ export default function BankingScreen() {
       </Card>
 
       <AddTransactionModal
-        open={txnOpen}
-        onClose={() => setTxnOpen(false)}
+        key={editTxn ? `edit-${editTxn.id}` : "create"}
+        open={txnOpen || editTxn !== null}
+        editing={editTxn}
+        onClose={() => {
+          setTxnOpen(false);
+          setEditTxn(null);
+        }}
         onCreate={(txn) => add(txn)}
+        onUpdate={(item, patch) => update(item, patch)}
       />
 
       {/* Add Bank modal */}

@@ -27,18 +27,33 @@ function formatDate(raw: string) {
   return d.toLocaleDateString("en-US", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+// Convert a stored display date ("01 Jul 2026") back to an ISO value for the
+// native date input; pass through if unparseable.
+function toDateInput(raw: string) {
+  if (!raw || raw === "—") return "";
+  const d = new Date(raw);
+  return Number.isNaN(d.getTime()) ? "" : d.toISOString().slice(0, 10);
+}
+
 export default function RunPayrollModal({
   open,
   onClose,
   onCreate,
+  editing,
+  onUpdate,
 }: {
   open: boolean;
   onClose: () => void;
   onCreate: (run: PayrollRun) => void;
+  editing?: PayrollRun | null;
+  onUpdate?: (item: PayrollRun, patch: Partial<PayrollRun>) => void;
 }) {
-  const [period, setPeriod] = useState(months[0]);
-  const [payDate, setPayDate] = useState("");
-  const [employees, setEmployees] = useState("");
+  const isEdit = !!editing;
+  const [period, setPeriod] = useState(editing?.period ?? months[0]);
+  const [payDate, setPayDate] = useState(toDateInput(editing?.payDate ?? ""));
+  const [employees, setEmployees] = useState(
+    editing ? String(editing.employees) : ""
+  );
 
   function reset() {
     setPeriod(months[0]);
@@ -50,6 +65,15 @@ export default function RunPayrollModal({
     e.preventDefault();
     if (employees.trim() === "") return;
     const count = Number.parseInt(employees, 10);
+    if (isEdit && editing && onUpdate) {
+      onUpdate(editing, {
+        period,
+        employees: Number.isNaN(count) ? editing.employees : count,
+        payDate: formatDate(payDate),
+      });
+      onClose();
+      return;
+    }
     onCreate({
       id: `PR-2026-${Math.floor(100 + Math.random() * 900)}`,
       period,
@@ -65,7 +89,7 @@ export default function RunPayrollModal({
   }
 
   function handleClose() {
-    reset();
+    if (!isEdit) reset();
     onClose();
   }
 
@@ -73,8 +97,12 @@ export default function RunPayrollModal({
     <Modal
       open={open}
       onClose={handleClose}
-      title="Run Payroll"
-      description="Start a new payroll run for the selected period."
+      title={isEdit ? "Edit Payroll Run" : "Run Payroll"}
+      description={
+        isEdit
+          ? "Update this payroll run."
+          : "Start a new payroll run for the selected period."
+      }
       size="lg"
     >
       <form id="run-payroll-form" onSubmit={handleSubmit}>
@@ -148,7 +176,7 @@ export default function RunPayrollModal({
           form="run-payroll-form"
           disabled={employees.trim() === ""}
         >
-          Run Payroll
+          {isEdit ? "Save Changes" : "Run Payroll"}
         </Button>
       </div>
     </Modal>

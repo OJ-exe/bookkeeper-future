@@ -34,21 +34,42 @@ function formatDate(raw: string) {
   return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+// Convert a stored display date (e.g. "15 Jun 2026") into an ISO value (yyyy-mm-dd)
+// for the native date input. Returns "" when the value is empty or unparseable.
+function toDateInput(raw: string | undefined) {
+  if (!raw || raw === "—") return "";
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return "";
+  const m = `${d.getMonth() + 1}`.padStart(2, "0");
+  const day = `${d.getDate()}`.padStart(2, "0");
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+
+// "—" is used as a placeholder for empty fields; show it as blank when editing.
+function unblank(v: string | undefined) {
+  return v && v !== "—" ? v : "";
+}
+
 export default function RecordPaymentModal({
   open,
   onClose,
   onCreate,
+  editing,
+  onUpdate,
 }: {
   open: boolean;
   onClose: () => void;
   onCreate: (payment: Payment) => void;
+  editing?: Payment | null;
+  onUpdate?: (item: Payment, patch: Partial<Payment>) => void;
 }) {
-  const [party, setParty] = useState(partyOptions[0]);
-  const [direction, setDirection] = useState<PaymentDirection>(directionOptions[0]);
-  const [method, setMethod] = useState<PaymentMethod>(methodOptions[0]);
-  const [reference, setReference] = useState("");
-  const [amount, setAmount] = useState("");
-  const [date, setDate] = useState("");
+  const isEdit = !!editing;
+  const [party, setParty] = useState(editing?.party ?? partyOptions[0]);
+  const [direction, setDirection] = useState<PaymentDirection>(editing?.direction ?? directionOptions[0]);
+  const [method, setMethod] = useState<PaymentMethod>(editing?.method ?? methodOptions[0]);
+  const [reference, setReference] = useState(unblank(editing?.reference));
+  const [amount, setAmount] = useState(unblank(editing?.amount));
+  const [date, setDate] = useState(toDateInput(editing?.date));
 
   function reset() {
     setParty(partyOptions[0]);
@@ -62,6 +83,18 @@ export default function RecordPaymentModal({
   function handleSubmit(e: FormEvent) {
     e.preventDefault();
     if (amount.trim() === "") return;
+    if (isEdit && editing && onUpdate) {
+      onUpdate(editing, {
+        date: formatDate(date),
+        party,
+        direction,
+        method,
+        reference: reference.trim() || "—",
+        amount: formatAmount(amount),
+      });
+      onClose();
+      return;
+    }
     onCreate({
       id: `PMT-2026-${Math.floor(100 + Math.random() * 900)}`,
       date: formatDate(date),
@@ -77,7 +110,7 @@ export default function RecordPaymentModal({
   }
 
   function handleClose() {
-    reset();
+    if (!isEdit) reset();
     onClose();
   }
 
@@ -85,8 +118,12 @@ export default function RecordPaymentModal({
     <Modal
       open={open}
       onClose={handleClose}
-      title="Record Payment"
-      description="Record money received or paid in seconds."
+      title={isEdit ? "Edit Payment" : "Record Payment"}
+      description={
+        isEdit
+          ? "Update this payment record."
+          : "Record money received or paid in seconds."
+      }
       footer={
         <>
           <Button variant="outline" onClick={handleClose}>
@@ -98,7 +135,7 @@ export default function RecordPaymentModal({
             variant="bronze"
             disabled={amount.trim() === ""}
           >
-            Record Payment
+            {isEdit ? "Save Changes" : "Record Payment"}
           </Button>
         </>
       }

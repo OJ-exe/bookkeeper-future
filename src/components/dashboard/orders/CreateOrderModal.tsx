@@ -32,20 +32,41 @@ function formatDate(raw: string) {
   return d.toLocaleDateString("en-GB", { day: "2-digit", month: "short", year: "numeric" });
 }
 
+// Convert a stored display date (e.g. "15 Jun 2026") into an ISO value (yyyy-mm-dd)
+// for the native date input. Returns "" when the value is empty or unparseable.
+function toDateInput(raw: string | undefined) {
+  if (!raw || raw === "—") return "";
+  const d = new Date(raw);
+  if (Number.isNaN(d.getTime())) return "";
+  const m = `${d.getMonth() + 1}`.padStart(2, "0");
+  const day = `${d.getDate()}`.padStart(2, "0");
+  return `${d.getFullYear()}-${m}-${day}`;
+}
+
+// "—" is used as a placeholder for empty fields; show it as blank when editing.
+function unblank(v: string | undefined) {
+  return v && v !== "—" ? v : "";
+}
+
 export default function CreateOrderModal({
   open,
   onClose,
   onCreate,
+  editing,
+  onUpdate,
 }: {
   open: boolean;
   onClose: () => void;
   onCreate: (order: Order) => void;
+  editing?: Order | null;
+  onUpdate?: (item: Order, patch: Partial<Order>) => void;
 }) {
-  const [party, setParty] = useState(partyOptions[0]);
-  const [kind, setKind] = useState<OrderKind>(orderTypeOptions[0]);
-  const [date, setDate] = useState("");
-  const [expectedDate, setExpectedDate] = useState("");
-  const [amount, setAmount] = useState("");
+  const isEdit = !!editing;
+  const [party, setParty] = useState(editing?.party ?? partyOptions[0]);
+  const [kind, setKind] = useState<OrderKind>(editing?.kind ?? orderTypeOptions[0]);
+  const [date, setDate] = useState(toDateInput(editing?.date));
+  const [expectedDate, setExpectedDate] = useState(toDateInput(editing?.expectedDate));
+  const [amount, setAmount] = useState(unblank(editing?.total));
 
   function reset() {
     setParty(partyOptions[0]);
@@ -59,6 +80,18 @@ export default function CreateOrderModal({
     e.preventDefault();
     if (amount.trim() === "") return;
     const formatted = formatAmount(amount);
+    if (isEdit && editing && onUpdate) {
+      onUpdate(editing, {
+        date: formatDate(date),
+        expectedDate: formatDate(expectedDate),
+        party,
+        kind,
+        total: formatted,
+        value: formatted,
+      });
+      onClose();
+      return;
+    }
     onCreate({
       number: `ORD-2026-${Math.floor(100 + Math.random() * 900)}`,
       date: formatDate(date),
@@ -75,7 +108,7 @@ export default function CreateOrderModal({
   }
 
   function handleClose() {
-    reset();
+    if (!isEdit) reset();
     onClose();
   }
 
@@ -83,8 +116,12 @@ export default function CreateOrderModal({
     <Modal
       open={open}
       onClose={handleClose}
-      title="Create Order"
-      description="Record a new sales or purchase order in seconds."
+      title={isEdit ? "Edit Order" : "Create Order"}
+      description={
+        isEdit
+          ? "Update this sales or purchase order."
+          : "Record a new sales or purchase order in seconds."
+      }
       footer={
         <>
           <Button variant="outline" onClick={handleClose}>
@@ -96,7 +133,7 @@ export default function CreateOrderModal({
             variant="bronze"
             disabled={amount.trim() === ""}
           >
-            Create Order
+            {isEdit ? "Save Changes" : "Create Order"}
           </Button>
         </>
       }

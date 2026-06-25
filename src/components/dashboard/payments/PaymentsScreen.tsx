@@ -17,6 +17,7 @@ import {
   Eye,
   Link2,
   FileDown,
+  Pencil,
   Trash2,
 } from "lucide-react";
 
@@ -106,11 +107,12 @@ function tabPredicate(tab: string, payment: Payment): boolean {
 }
 
 export default function PaymentsScreen() {
-  const { items: payments, add, remove, setItems } = useCollection<Payment>("payments");
+  const { items: payments, add, remove, update, setItems } = useCollection<Payment>("payments");
   const [tab, setTab] = useState("All");
   const [query, setQuery] = useState("");
   const [method, setMethod] = useState("All Methods");
   const [createOpen, setCreateOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<Payment | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Payment | null>(null);
 
   const q = query.trim().toLowerCase();
@@ -343,6 +345,9 @@ export default function PaymentsScreen() {
                         }
                       >
                         <MenuItem icon={Eye}>View</MenuItem>
+                        <MenuItem icon={Pencil} onClick={() => setEditTarget(payment)}>
+                          Edit
+                        </MenuItem>
                         <MenuItem icon={Link2}>Reconcile</MenuItem>
                         <MenuItem icon={FileDown}>Download Receipt</MenuItem>
                         <MenuItem icon={Trash2} danger onClick={() => setDeleteTarget(payment)}>
@@ -389,9 +394,15 @@ export default function PaymentsScreen() {
       </Card>
 
       <RecordPaymentModal
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
+        key={editTarget ? `edit-${editTarget.id}` : "create"}
+        open={createOpen || editTarget !== null}
+        editing={editTarget}
+        onClose={() => {
+          setCreateOpen(false);
+          setEditTarget(null);
+        }}
         onCreate={(payment) => add(payment)}
+        onUpdate={(item, patch) => update(item, patch)}
       />
 
       <Modal

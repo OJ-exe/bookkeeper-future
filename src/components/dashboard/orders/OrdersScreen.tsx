@@ -102,11 +102,12 @@ function tabPredicate(tab: string, order: Order): boolean {
 }
 
 export default function OrdersScreen() {
-  const { items: orders, add, remove, setItems } = useCollection<Order>("orders");
+  const { items: orders, add, remove, update, setItems } = useCollection<Order>("orders");
   const [tab, setTab] = useState("All");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [createOpen, setCreateOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<Order | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Order | null>(null);
 
   const q = query.trim().toLowerCase();
@@ -381,7 +382,9 @@ export default function OrdersScreen() {
                         >
                           <MenuItem icon={Eye}>View</MenuItem>
                           <MenuItem icon={FileText}>Convert to Invoice</MenuItem>
-                          <MenuItem icon={Pencil}>Edit</MenuItem>
+                          <MenuItem icon={Pencil} onClick={() => setEditTarget(order)}>
+                            Edit
+                          </MenuItem>
                           <MenuItem icon={Ban} danger onClick={() => setDeleteTarget(order)}>
                             Cancel
                           </MenuItem>
@@ -430,9 +433,15 @@ export default function OrdersScreen() {
       </Card>
 
       <CreateOrderModal
-        open={createOpen}
-        onClose={() => setCreateOpen(false)}
+        key={editTarget ? `edit-${editTarget.number}` : "create"}
+        open={createOpen || editTarget !== null}
+        editing={editTarget}
+        onClose={() => {
+          setCreateOpen(false);
+          setEditTarget(null);
+        }}
         onCreate={(order) => add(order)}
+        onUpdate={(item, patch) => update(item, patch)}
       />
 
       <Modal

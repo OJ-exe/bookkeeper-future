@@ -17,21 +17,31 @@ function initialsOf(name: string) {
   return (parts[0][0] + parts[1][0]).toUpperCase();
 }
 
+// "—" is used as a placeholder for empty fields; show it as blank when editing.
+function unblank(v: string | undefined) {
+  return v && v !== "—" ? v : "";
+}
+
 export default function AddEmployeeModal({
   open,
   onClose,
   onCreate,
+  editing,
+  onUpdate,
 }: {
   open: boolean;
   onClose: () => void;
   onCreate: (employee: Employee) => void;
+  editing?: Employee | null;
+  onUpdate?: (item: Employee, patch: Partial<Employee>) => void;
 }) {
-  const [name, setName] = useState("");
-  const [department, setDepartment] = useState<Department>(departments[0]);
-  const [designation, setDesignation] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [ctc, setCtc] = useState("");
+  const isEdit = !!editing;
+  const [name, setName] = useState(editing?.name ?? "");
+  const [department, setDepartment] = useState<Department>(editing?.department ?? departments[0]);
+  const [designation, setDesignation] = useState(unblank(editing?.designation));
+  const [email, setEmail] = useState(unblank(editing?.email));
+  const [phone, setPhone] = useState(unblank(editing?.phone));
+  const [ctc, setCtc] = useState(unblank(editing?.ctc));
 
   function reset() {
     setName("");
@@ -45,6 +55,19 @@ export default function AddEmployeeModal({
   function handleSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     if (name.trim() === "") return;
+    if (isEdit && editing && onUpdate) {
+      onUpdate(editing, {
+        name: name.trim(),
+        initials: initialsOf(name),
+        department,
+        designation: designation.trim() || "—",
+        email: email.trim() || "—",
+        phone: phone.trim() || "—",
+        ctc: ctc.trim() || "—",
+      });
+      onClose();
+      return;
+    }
     onCreate({
       code: `EMP-${Math.floor(100 + Math.random() * 900)}`,
       name: name.trim(),
@@ -62,7 +85,7 @@ export default function AddEmployeeModal({
   }
 
   function handleClose() {
-    reset();
+    if (!isEdit) reset();
     onClose();
   }
 
@@ -70,8 +93,12 @@ export default function AddEmployeeModal({
     <Modal
       open={open}
       onClose={handleClose}
-      title="Add Employee"
-      description="Add a new employee to your master data."
+      title={isEdit ? "Edit Employee" : "Add Employee"}
+      description={
+        isEdit
+          ? "Update this employee's master data."
+          : "Add a new employee to your master data."
+      }
       size="lg"
     >
       <form id="add-employee-form" onSubmit={handleSubmit}>
@@ -173,7 +200,7 @@ export default function AddEmployeeModal({
           form="add-employee-form"
           disabled={name.trim() === ""}
         >
-          Add Employee
+          {isEdit ? "Save Changes" : "Add Employee"}
         </Button>
       </div>
     </Modal>

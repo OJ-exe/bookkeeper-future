@@ -51,6 +51,8 @@ import {
 import { useCollection } from "@/lib/store/dataStore";
 import { downloadCsvTemplate } from "@/lib/exportCsv";
 import UploadButton from "@/components/ui/UploadButton";
+import DetailModal from "@/components/ui/DetailModal";
+import { useToast } from "@/components/ui/Toast";
 
 const vendorCsvHeaders = [
   "Name", "GSTIN", "City", "Contact Name", "Email", "Phone", "Spend", "Payable", "Status",
@@ -136,10 +138,12 @@ const quickActions: { icon: LucideIcon; label: string }[] = [
 
 export default function VendorsScreen() {
   const { items: vendors, add, remove, update, setItems } = useCollection<Vendor>("vendors");
+  const toast = useToast();
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState("All Vendors");
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Vendor | null>(null);
+  const [viewTarget, setViewTarget] = useState<Vendor | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Vendor | null>(null);
 
   const q = query.trim().toLowerCase();
@@ -443,11 +447,18 @@ export default function VendorsScreen() {
                               </button>
                             }
                           >
-                            <MenuItem icon={Eye}>View</MenuItem>
+                            <MenuItem icon={Eye} onClick={() => setViewTarget(v)}>
+                              View
+                            </MenuItem>
                             <MenuItem icon={Pencil} onClick={() => setEditTarget(v)}>
                               Edit
                             </MenuItem>
-                            <MenuItem icon={Wallet}>Record Payment</MenuItem>
+                            <MenuItem
+                              icon={Wallet}
+                              onClick={() => toast(`Recording payment for ${v.name}…`, "info")}
+                            >
+                              Record Payment
+                            </MenuItem>
                             <MenuItem icon={Trash2} danger onClick={() => setDeleteTarget(v)}>
                               Delete
                             </MenuItem>
@@ -556,6 +567,27 @@ export default function VendorsScreen() {
       </div>
 
       {/* Modals */}
+      <DetailModal
+        open={viewTarget !== null}
+        onClose={() => setViewTarget(null)}
+        title={viewTarget?.name ?? "Vendor"}
+        description="Vendor details"
+        rows={
+          viewTarget
+            ? [
+                { label: "GSTIN", value: viewTarget.gstin },
+                { label: "City", value: viewTarget.city },
+                { label: "Contact", value: viewTarget.contactName },
+                { label: "Email", value: viewTarget.email },
+                { label: "Phone", value: viewTarget.phone },
+                { label: "Spend", value: viewTarget.spend },
+                { label: "Payable", value: viewTarget.payable },
+                { label: "Status", value: viewTarget.status },
+              ]
+            : []
+        }
+      />
+
       <CreateVendorModal
         key={editTarget ? `edit-${editTarget.name}` : "create"}
         open={createOpen || editTarget !== null}

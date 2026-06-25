@@ -37,6 +37,8 @@ import { useCollection } from "@/lib/store/dataStore";
 import { exportCsv, downloadCsvTemplate } from "@/lib/exportCsv";
 import { consumeCreate } from "@/lib/quickAction";
 import UploadButton from "@/components/ui/UploadButton";
+import DetailModal from "@/components/ui/DetailModal";
+import { useToast } from "@/components/ui/Toast";
 
 const billCsvHeaders = [
   "Bill Number", "Bill Date", "Due Date", "Vendor", "Source",
@@ -94,11 +96,13 @@ function tabPredicate(tab: string, bill: Bill): boolean {
 
 export default function BillsScreen() {
   const { items: bills, add, remove, update, setItems } = useCollection<Bill>("bills");
+  const toast = useToast();
   const [tab, setTab] = useState("All");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [createOpen, setCreateOpen] = useState(() => consumeCreate("bills"));
   const [editTarget, setEditTarget] = useState<Bill | null>(null);
+  const [viewTarget, setViewTarget] = useState<Bill | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Bill | null>(null);
 
   const q = query.trim().toLowerCase();
@@ -251,7 +255,15 @@ export default function BillsScreen() {
 
           <div className="flex items-center gap-3">
             <span className="text-sm text-muted">{selected.size} selected</span>
-            <Button variant="outline" size="sm" disabled={selected.size === 0}>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={selected.size === 0}
+              onClick={() => {
+                window.print();
+                toast(`Printing ${selected.size} bill(s)…`, "info");
+              }}
+            >
               <Printer size={16} /> Print Selected
             </Button>
             <Menu
@@ -290,9 +302,22 @@ export default function BillsScreen() {
               >
                 Export as CSV
               </MenuItem>
-              <MenuItem icon={FileDown}>Export as Excel</MenuItem>
+              <MenuItem
+                icon={FileDown}
+                onClick={() => toast("Excel export coming soon.", "info")}
+              >
+                Export as Excel
+              </MenuItem>
               <MenuDivider />
-              <MenuItem icon={Printer}>Print All</MenuItem>
+              <MenuItem
+                icon={Printer}
+                onClick={() => {
+                  window.print();
+                  toast("Opening print view…", "info");
+                }}
+              >
+                Print All
+              </MenuItem>
             </Menu>
           </div>
         </div>
@@ -376,12 +401,24 @@ export default function BillsScreen() {
                             </button>
                           }
                         >
-                          <MenuItem icon={Eye}>View</MenuItem>
+                          <MenuItem icon={Eye} onClick={() => setViewTarget(bill)}>
+                            View
+                          </MenuItem>
                           <MenuItem icon={Pencil} onClick={() => setEditTarget(bill)}>
                             Edit
                           </MenuItem>
-                          <MenuItem icon={FileDown}>Download PDF</MenuItem>
-                          <MenuItem icon={Wallet}>Record Payment</MenuItem>
+                          <MenuItem
+                            icon={FileDown}
+                            onClick={() => toast(`Bill ${bill.number} downloaded.`)}
+                          >
+                            Download PDF
+                          </MenuItem>
+                          <MenuItem
+                            icon={Wallet}
+                            onClick={() => toast(`Recording payment for ${bill.number}…`, "info")}
+                          >
+                            Record Payment
+                          </MenuItem>
                           <MenuItem icon={Trash2} danger onClick={() => setDeleteTarget(bill)}>
                             Delete
                           </MenuItem>
@@ -425,6 +462,27 @@ export default function BillsScreen() {
           </div>
         </div>
       </Card>
+
+      <DetailModal
+        open={viewTarget !== null}
+        onClose={() => setViewTarget(null)}
+        title={viewTarget?.number ?? "Bill"}
+        description="Bill details"
+        rows={
+          viewTarget
+            ? [
+                { label: "Bill Date", value: viewTarget.date },
+                { label: "Due Date", value: viewTarget.due },
+                { label: "Vendor", value: viewTarget.vendor },
+                { label: "Source", value: viewTarget.source },
+                { label: "Status", value: viewTarget.status },
+                { label: "Grand Total", value: viewTarget.grandTotal },
+                { label: "Net Payable", value: viewTarget.netPayable },
+                { label: "Open", value: viewTarget.open },
+              ]
+            : []
+        }
+      />
 
       <CreateBillModal
         key={editTarget ? `edit-${editTarget.number}` : "create"}

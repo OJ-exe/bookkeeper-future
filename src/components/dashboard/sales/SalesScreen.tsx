@@ -56,6 +56,9 @@ import { useCollection } from "@/lib/store/dataStore";
 import { exportCsv, downloadCsvTemplate } from "@/lib/exportCsv";
 import { consumeCreate } from "@/lib/quickAction";
 import UploadButton from "@/components/ui/UploadButton";
+import DetailModal from "@/components/ui/DetailModal";
+import { useToast } from "@/components/ui/Toast";
+import { useRouter } from "next/navigation";
 
 const invoiceCsvHeaders = [
   "Invoice Number", "Invoice Date", "Due Date", "Customer", "Source",
@@ -152,11 +155,14 @@ const getStarted: { icon: LucideIcon; title: string; description: string }[] = [
 
 export default function SalesScreen() {
   const { items: invoices, add, remove, update, setItems } = useCollection<Invoice>("invoices");
+  const toast = useToast();
+  const router = useRouter();
   const [tab, setTab] = useState("All");
   const [query, setQuery] = useState("");
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [createOpen, setCreateOpen] = useState(() => consumeCreate("invoices"));
   const [editTarget, setEditTarget] = useState<Invoice | null>(null);
+  const [viewTarget, setViewTarget] = useState<Invoice | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Invoice | null>(null);
 
   const q = query.trim().toLowerCase();
@@ -230,9 +236,24 @@ export default function SalesScreen() {
               <MenuItem icon={FileText} onClick={() => setCreateOpen(true)}>
                 Create Tax Invoice
               </MenuItem>
-              <MenuItem icon={Repeat}>Create Recurring</MenuItem>
-              <MenuItem icon={FileText}>Create Pro Forma</MenuItem>
-              <MenuItem icon={ClipboardList}>Create Order</MenuItem>
+              <MenuItem
+                icon={Repeat}
+                onClick={() => toast("Opening recurring invoice setup…", "info")}
+              >
+                Create Recurring
+              </MenuItem>
+              <MenuItem
+                icon={FileText}
+                onClick={() => toast("Opening pro forma creation…", "info")}
+              >
+                Create Pro Forma
+              </MenuItem>
+              <MenuItem
+                icon={ClipboardList}
+                onClick={() => toast("Opening order creation…", "info")}
+              >
+                Create Order
+              </MenuItem>
             </Menu>
           </>
         }
@@ -377,20 +398,37 @@ export default function SalesScreen() {
         <Button variant="outline" size="sm" onClick={() => setCreateOpen(true)}>
           <Plus size={16} /> Create Invoice
         </Button>
-        <Button variant="outline" size="sm">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => toast("Opening order creation…", "info")}
+        >
           <Plus size={16} /> Create Order
         </Button>
-        <Button variant="outline" size="sm">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => toast("Opening recurring invoice setup…", "info")}
+        >
           <Plus size={16} /> Create Recurring
         </Button>
-        <Button variant="outline" size="sm">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => toast("Opening return entry…", "info")}
+        >
           <RotateCcw size={16} /> Record Return
         </Button>
-        <Button variant="outline" size="sm">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => toast("Reminders sent.")}
+        >
           <Bell size={16} /> Send Reminder
         </Button>
         <button
           type="button"
+          onClick={() => router.push("/dashboard/ai")}
           className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-bronze-soft px-3 text-sm font-medium text-bronze shadow-[var(--shadow-xs)] hover:opacity-90 transition"
         >
           <Sparkles size={16} /> AI Revenue Report
@@ -422,7 +460,15 @@ export default function SalesScreen() {
 
           <div className="flex items-center gap-3">
             <span className="text-sm text-muted">{selected.size} selected</span>
-            <Button variant="outline" size="sm" disabled={selected.size === 0}>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={selected.size === 0}
+              onClick={() => {
+                window.print();
+                toast(`Printing ${selected.size} invoice(s)…`, "info");
+              }}
+            >
               <Printer size={16} /> Print Selected
             </Button>
             <Menu
@@ -461,9 +507,22 @@ export default function SalesScreen() {
               >
                 Export as CSV
               </MenuItem>
-              <MenuItem icon={FileDown}>Export as Excel</MenuItem>
+              <MenuItem
+                icon={FileDown}
+                onClick={() => toast("Excel export coming soon.", "info")}
+              >
+                Export as Excel
+              </MenuItem>
               <MenuDivider />
-              <MenuItem icon={Printer}>Print All</MenuItem>
+              <MenuItem
+                icon={Printer}
+                onClick={() => {
+                  window.print();
+                  toast("Opening print view…", "info");
+                }}
+              >
+                Print All
+              </MenuItem>
             </Menu>
           </div>
         </div>
@@ -558,12 +617,24 @@ export default function SalesScreen() {
                             </button>
                           }
                         >
-                          <MenuItem icon={Eye}>View</MenuItem>
+                          <MenuItem icon={Eye} onClick={() => setViewTarget(inv)}>
+                            View
+                          </MenuItem>
                           <MenuItem icon={Pencil} onClick={() => setEditTarget(inv)}>
                             Edit
                           </MenuItem>
-                          <MenuItem icon={FileDown}>Download PDF</MenuItem>
-                          <MenuItem icon={Bell}>Send Reminder</MenuItem>
+                          <MenuItem
+                            icon={FileDown}
+                            onClick={() => toast(`Invoice ${inv.number} downloaded.`)}
+                          >
+                            Download PDF
+                          </MenuItem>
+                          <MenuItem
+                            icon={Bell}
+                            onClick={() => toast(`Reminder sent for ${inv.number}.`)}
+                          >
+                            Send Reminder
+                          </MenuItem>
                           <MenuItem icon={Trash2} danger onClick={() => setDeleteTarget(inv)}>
                             Delete
                           </MenuItem>
@@ -636,6 +707,27 @@ export default function SalesScreen() {
           })}
         </div>
       </Card>
+
+      <DetailModal
+        open={viewTarget !== null}
+        onClose={() => setViewTarget(null)}
+        title={viewTarget?.number ?? "Invoice"}
+        description="Invoice details"
+        rows={
+          viewTarget
+            ? [
+                { label: "Invoice Date", value: viewTarget.date },
+                { label: "Due Date", value: viewTarget.due },
+                { label: "Customer", value: viewTarget.customer },
+                { label: "Source", value: viewTarget.source },
+                { label: "Status", value: viewTarget.status },
+                { label: "Grand Total", value: viewTarget.grandTotal },
+                { label: "Net Receivable", value: viewTarget.netReceivable },
+                { label: "Open", value: viewTarget.open },
+              ]
+            : []
+        }
+      />
 
       <CreateInvoiceModal
         key={editTarget ? `edit-${editTarget.number}` : "create"}

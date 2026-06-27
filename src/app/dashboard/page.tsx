@@ -1,139 +1,61 @@
-import Topbar from "@/components/dashboard/Topbar";
-import MISFilterBar from "@/components/dashboard/MISFilterBar";
-import MISStatsGrid from "@/components/dashboard/MISStatsGrid";
-import QuickActions from "@/components/dashboard/QuickActions";
+import Greeting from "@/components/dashboard/Greeting";
+import BusinessHealthCard from "@/components/dashboard/BusinessHealthCard";
+import AIRailPanel from "@/components/ui/AIRailPanel";
+import KpiRow from "@/components/dashboard/KpiRow";
+import QuickActionsRow from "@/components/dashboard/QuickActionsRow";
+import CashFlowChart from "@/components/dashboard/CashFlowChart";
+import RevenueExpensesChart from "@/components/dashboard/RevenueExpensesChart";
+import OutstandingDonut from "@/components/dashboard/OutstandingDonut";
+import SetupWorkbench from "@/components/dashboard/SetupWorkbench";
+import TodaysFocusCard from "@/components/dashboard/TodaysFocusCard";
+import RecentActivity from "@/components/dashboard/RecentActivity";
+import InsightsPanel from "@/components/dashboard/InsightsPanel";
+import BottomStats from "@/components/dashboard/BottomStats";
 
-import Charts from "@/components/dashboard/Charts";
-import RevenueExpenseChart from "@/components/dashboard/RevenueExpenseChart";
-
-import AICopilot from "@/components/dashboard/AICopilot";
-import BusinessHealth from "@/components/dashboard/BusinessHealth";
-
-import OutstandingInvoices from "@/components/dashboard/OutstandingInvoices";
-import PendingActions from "@/components/dashboard/PendingActions";
-import TaxSummary from "@/components/dashboard/TaxSummary";
-
-import ReceivableAgeing from "@/components/dashboard/ReceivableAgeing";
-import PayableAgeing from "@/components/dashboard/PayableAgeing";
-
-import BankingSummary from "@/components/dashboard/BankingSummary";
-import MISInsights from "@/components/dashboard/MISInsights";
-
-import RevenueChannels from "@/components/dashboard/RevenueChannels";
-import ExpenseAnalysis from "@/components/dashboard/ExpenseAnalysis";
-
-import TopCustomers from "@/components/dashboard/TopCustomers";
-import TopVendors from "@/components/dashboard/TopVendors";
-
-import SetupCard from "@/components/dashboard/SetupCard";
-import TodaysFocus from "@/components/dashboard/TodaysFocus";
-
-import Activity from "@/components/dashboard/Activity";
+const aiPrompts = [
+  "Generate MIS Report",
+  "Forecast Cash Flow",
+  "Explain GST Reconciliation",
+  "Find Overdue Invoices",
+  "Create Invoice",
+];
 
 export default function DashboardPage() {
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <Topbar />
-
-      {/* MIS Filters */}
-      <MISFilterBar />
-
-      {/* KPI Cards */}
-      <section>
-        <h2 className="text-lg font-semibold text-slate-900 mb-4">
-          Financial Overview
-        </h2>
-
-        <MISStatsGrid />
-      </section>
-
-      {/* Quick Actions */}
-      <section>
-        <QuickActions />
-      </section>
-
-      {/* Cash Flow + AI */}
-      <section>
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-          <div className="lg:col-span-8">
-            <Charts />
-          </div>
-
-          <div className="lg:col-span-4">
-            <AICopilot />
-          </div>
+      {/* Top band: main column (greeting + KPIs + quick actions) beside the tall Health/AI rail */}
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6 items-start">
+        <div className="xl:col-span-8 space-y-6">
+          <Greeting />
+          <KpiRow />
+          <QuickActionsRow />
         </div>
-      </section>
 
-      {/* Revenue vs Expense + Health */}
-      <section>
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-          <div className="lg:col-span-8">
-            <RevenueExpenseChart />
-          </div>
-
-          <div className="lg:col-span-4">
-            <BusinessHealth />
-          </div>
+        <div className="xl:col-span-4 grid grid-cols-1 sm:grid-cols-2 gap-6 items-stretch [&>*]:h-full">
+          <BusinessHealthCard />
+          <AIRailPanel
+            prompts={aiPrompts}
+            greeting="Hi Ojaswini! How can I help you today?"
+          />
         </div>
-      </section>
+      </div>
 
-      {/* Outstanding + Tax */}
-      <section>
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-          <OutstandingInvoices />
-          <TaxSummary />
-        </div>
-      </section>
+      {/* Charts */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch [&>*]:h-full">
+        <CashFlowChart />
+        <RevenueExpensesChart />
+        <OutstandingDonut />
+      </div>
 
-      {/* Pending + Insights */}
-      <section>
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-          <PendingActions />
-          <MISInsights />
-        </div>
-      </section>
+      {/* Lower row */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-stretch [&>*]:h-full">
+        <SetupWorkbench />
+        <TodaysFocusCard />
+        <RecentActivity />
+        <InsightsPanel />
+      </div>
 
-      {/* Ageing */}
-      <section>
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-          <ReceivableAgeing />
-          <PayableAgeing />
-        </div>
-      </section>
-
-      {/* Banking + Revenue Channels */}
-      <section>
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-          <BankingSummary />
-          <RevenueChannels />
-        </div>
-      </section>
-
-      {/* Customers + Vendors */}
-      <section>
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-          <TopCustomers />
-          <TopVendors />
-        </div>
-      </section>
-
-      {/* Expense + Focus */}
-      <section>
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-          <ExpenseAnalysis />
-          <TodaysFocus />
-        </div>
-      </section>
-
-      {/* Setup + Activity */}
-      <section>
-        <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-          <SetupCard />
-          <Activity />
-        </div>
-      </section>
+      <BottomStats />
     </div>
   );
 }

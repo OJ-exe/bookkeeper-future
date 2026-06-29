@@ -11,6 +11,7 @@ import TodaysFocusCard from "@/components/dashboard/TodaysFocusCard";
 import RecentActivity from "@/components/dashboard/RecentActivity";
 import InsightsPanel from "@/components/dashboard/InsightsPanel";
 import BottomStats from "@/components/dashboard/BottomStats";
+import ApiIntegrationPanel from "@/components/dashboard/ApiIntegrationPanel";
 
 const aiPrompts = [
   "Generate MIS Report",
@@ -31,7 +32,7 @@ export default function DashboardPage() {
           <QuickActionsRow />
         </div>
 
-        <div className="xl:col-span-4 grid grid-cols-1 sm:grid-cols-2 gap-6 items-stretch [&>*]:h-full">
+        <div className="xl:col-span-4 grid grid-cols-1 sm:grid-cols-2 gap-6 items-stretch *:h-full">
           <BusinessHealthCard />
           <AIRailPanel
             prompts={aiPrompts}
@@ -41,20 +42,21 @@ export default function DashboardPage() {
       </div>
 
       {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch [&>*]:h-full">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch *:h-full">
         <CashFlowChart />
         <RevenueExpensesChart />
         <OutstandingDonut />
       </div>
 
       {/* Lower row */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-stretch [&>*]:h-full">
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 items-stretch *:h-full">
         <SetupWorkbench />
         <TodaysFocusCard />
         <RecentActivity />
         <InsightsPanel />
       </div>
 
+      <ApiIntegrationPanel />
       <BottomStats />
     </div>
   );

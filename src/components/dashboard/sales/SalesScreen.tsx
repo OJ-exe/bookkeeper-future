@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Search,
   Filter,
@@ -52,7 +52,6 @@ import {
   type Invoice,
   type InvoiceStatus,
 } from "@/data/salesDocuments";
-import { useCollection } from "@/lib/store/dataStore";
 import { exportCsv, downloadCsvTemplate } from "@/lib/exportCsv";
 import { consumeCreate } from "@/lib/quickAction";
 import UploadButton from "@/components/ui/UploadButton";
@@ -153,8 +152,35 @@ const getStarted: { icon: LucideIcon; title: string; description: string }[] = [
   { icon: Send, title: "Send & Collect", description: "Send invoices and track payments." },
 ];
 
+type ApiInvoice = {
+  id: number;
+  number: string;
+  date: string | null;
+  due: string | null;
+  customer: string;
+  source: string | null;
+  status: string | null;
+  grandTotal: string | null;
+  netReceivable: string | null;
+  open: string | null;
+};
+
+function mapApiInvoice(invoice: ApiInvoice): Invoice {
+  return {
+    number: invoice.number,
+    date: invoice.date || "—",
+    due: invoice.due || "—",
+    customer: invoice.customer,
+    source: invoice.source || "Direct",
+    status: (invoice.status as InvoiceStatus) || "Sent",
+    grandTotal: invoice.grandTotal || "₹0",
+    netReceivable: invoice.netReceivable || "₹0",
+    open: invoice.open || "₹0",
+  };
+}
+
 export default function SalesScreen() {
-  const { items: invoices, add, remove, update, setItems } = useCollection<Invoice>("invoices");
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
   const toast = useToast();
   const router = useRouter();
   const [tab, setTab] = useState("All");
@@ -164,6 +190,54 @@ export default function SalesScreen() {
   const [editTarget, setEditTarget] = useState<Invoice | null>(null);
   const [viewTarget, setViewTarget] = useState<Invoice | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Invoice | null>(null);
+
+  useEffect(() => {
+    async function loadInvoices() {
+      try {
+        const response = await fetch("/api/invoices");
+        if (!response.ok) {
+          throw new Error("Failed to load invoices");
+        }
+        const data = (await response.json()) as ApiInvoice[];
+        setInvoices(data.map(mapApiInvoice));
+      } catch {
+        setInvoices([]);
+      }
+    }
+
+    void loadInvoices();
+  }, []);
+
+  async function addInvoice(invoice: Invoice) {
+    try {
+      const response = await fetch("/api/invoices", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(invoice),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create invoice");
+      }
+
+      const created = (await response.json()) as ApiInvoice;
+      setInvoices((current) => [mapApiInvoice(created), ...current]);
+      toast("Invoice created successfully.");
+    } catch {
+      toast("Unable to create invoice right now.");
+    }
+  }
+
+  async function updateInvoice(item: Invoice, patch: Partial<Invoice>) {
+    const updated = { ...item, ...patch };
+    setInvoices((current) => current.map((entry) => (entry.number === item.number ? updated : entry)));
+    toast("Invoice updated.");
+  }
+
+  async function removeInvoice(item: Invoice) {
+    setInvoices((current) => current.filter((entry) => entry.number !== item.number));
+    toast("Invoice removed from the current view.");
+  }
 
   const q = query.trim().toLowerCase();
   const filtered = invoices.filter((inv) => {
@@ -222,7 +296,7 @@ export default function SalesScreen() {
             <UploadButton<Invoice>
               label="Upload CSV"
               build={buildImportedInvoice}
-              onImport={(records) => setItems([...records, ...invoices])}
+              onImport={(records) => setInvoices((current) => [...records, ...current])}
             />
             <Menu
               align="right"
@@ -737,8 +811,8 @@ export default function SalesScreen() {
           setCreateOpen(false);
           setEditTarget(null);
         }}
-        onCreate={(invoice) => add(invoice)}
-        onUpdate={(item, patch) => update(item, patch)}
+        onCreate={addInvoice}
+        onUpdate={updateInvoice}
       />
 
       <Modal
@@ -755,7 +829,9 @@ export default function SalesScreen() {
             <button
               type="button"
               onClick={() => {
-                if (deleteTarget) remove(deleteTarget);
+                if (deleteTarget) {
+                  void removeInvoice(deleteTarget);
+                }
                 setDeleteTarget(null);
               }}
               className="h-11 px-5 rounded-xl bg-danger text-white text-sm font-medium hover:opacity-90 transition"

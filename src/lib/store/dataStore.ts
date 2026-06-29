@@ -5,7 +5,6 @@ import { useCallback, useSyncExternalStore } from "react";
 import { customers as customersSeed } from "@/data/customers";
 import { vendors as vendorsSeed } from "@/data/vendors";
 import { invoices as invoicesSeed } from "@/data/salesDocuments";
-import { bills as billsSeed } from "@/data/bills";
 import { accounts as accountsSeed } from "@/data/accounts";
 import { payments as paymentsSeed } from "@/data/payments";
 import { orders as ordersSeed } from "@/data/orders";
@@ -39,7 +38,7 @@ const SEED: Store = {
   customers: customersSeed,
   vendors: vendorsSeed,
   invoices: invoicesSeed,
-  bills: billsSeed,
+  bills: [],
   accounts: accountsSeed,
   payments: paymentsSeed,
   orders: ordersSeed,

@@ -1,0 +1,146 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Customer {
+  id              Int      @id @default(autoincrement())
+  name            String
+  initials        String?
+  vip             Boolean  @default(false)
+  gstin           String?
+  city            String?
+  contactName     String?
+  email           String?  @unique
+  phone           String?
+  revenue         String?  @default("₹0")
+  revenuePct      String?  @default("0% of total")
+  outstanding     String?  @default("₹0")
+  outstandingNote String?  @default("No invoices")
+  status          String   @default("Active")
+  isNew           Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  invoices        Invoice[]
+  payments        Payment[]
+}
+
+model Vendor {
+  id              Int      @id @default(autoincrement())
+  name            String
+  initials        String?
+  preferred       Boolean  @default(false)
+  gstin           String?
+  city            String?
+  contactName     String?
+  email           String?  @unique
+  phone           String?
+  spend           String?  @default("₹0")
+  spendPct        String?  @default("0% of total")
+  payable         String?  @default("₹0")
+  payableNote     String?  @default("No bills")
+  status          String   @default("Active")
+  isNew           Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  bills           Bill[]
+  payments        Payment[]
+}
+
+model Invoice {
+  id              Int      @id @default(autoincrement())
+  number          String   @unique
+  date            String?
+  due             String?
+  customer        String
+  source          String?  @default("Direct")
+  status          String   @default("Sent")
+  grandTotal      String?  @default("₹0")
+  netReceivable   String?  @default("₹0")
+  open            String?  @default("₹0")
+  customerId      Int?
+  vendorId        Int?
+  customerRecord  Customer? @relation(fields: [customerId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  payments        Payment[]
+}
+
+model Bill {
+  id              Int      @id @default(autoincrement())
+  number          String   @unique
+  date            String?
+  due             String?
+  vendor          String
+  source          String?  @default("Direct")
+  status          String   @default("Open")
+  grandTotal      String?  @default("₹0")
+  netPayable      String?  @default("₹0")
+  open            String?  @default("₹0")
+  vendorId        Int?
+  vendorRecord    Vendor?  @relation(fields: [vendorId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  payments        Payment[]
+}
+
+model Payment {
+  id              Int      @id @default(autoincrement())
+  date            String?
+  party           String
+  direction       String   @default("Received")
+  method          String   @default("Bank Transfer")
+  reference       String?
+  status          String   @default("Pending")
+  amount          String?  @default("₹0")
+  customerId      Int?
+  vendorId        Int?
+  invoiceId       Int?
+  billId          Int?
+  bankAccountId   Int?
+  transactionId   Int?
+  customer        Customer? @relation(fields: [customerId], references: [id])
+  vendor          Vendor?  @relation(fields: [vendorId], references: [id])
+  invoice         Invoice? @relation(fields: [invoiceId], references: [id])
+  bill            Bill?    @relation(fields: [billId], references: [id])
+  bankAccount     BankAccount? @relation(fields: [bankAccountId], references: [id])
+  transaction     BankTransaction? @relation("PaymentTransactionB", fields: [transactionId], references: [id])
+  transactionRecord BankTransaction? @relation("PaymentTransactionA", fields: [transactionId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+model BankAccount {
+  id              Int      @id @default(autoincrement())
+  name            String   @unique
+  bankName        String?
+  accountNo       String?
+  balance         String?  @default("₹0")
+  ledger          String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  transactions    BankTransaction[]
+  payments        Payment[]
+}
+
+model BankTransaction {
+  id              Int      @id @default(autoincrement())
+  date            String?
+  description     String
+  reference       String?
+  kind            String   @default("Inflow")
+  amount          String?  @default("₹0")
+  account         String?
+  status          String   @default("Unmatched")
+  bankAccountId   Int?
+  paymentId       Int?
+  bankAccount     BankAccount? @relation(fields: [bankAccountId], references: [id])
+  payment         Payment? @relation("PaymentTransactionA", fields: [paymentId], references: [id])
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  paymentRelation Payment[] @relation("PaymentTransactionB")
+}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Search,
   Filter,
@@ -51,7 +51,6 @@ import {
   type Customer,
   type CustomerStatus,
 } from "@/data/customers";
-import { useCollection } from "@/lib/store/dataStore";
 import { downloadCsvTemplate } from "@/lib/exportCsv";
 import { consumeCreate } from "@/lib/quickAction";
 import UploadButton from "@/components/ui/UploadButton";
@@ -194,8 +193,45 @@ const getStarted: {
   },
 ];
 
+type ApiCustomer = {
+  id: number;
+  name: string;
+  initials: string | null;
+  vip: boolean;
+  gstin: string | null;
+  city: string | null;
+  contactName: string | null;
+  email: string | null;
+  phone: string | null;
+  revenue: string | null;
+  revenuePct: string | null;
+  outstanding: string | null;
+  outstandingNote: string | null;
+  status: string | null;
+  isNew: boolean;
+};
+
+function mapApiCustomer(customer: ApiCustomer): Customer {
+  return {
+    name: customer.name,
+    initials: customer.initials || customer.name.slice(0, 2).toUpperCase(),
+    vip: customer.vip,
+    gstin: customer.gstin || "—",
+    city: customer.city || "—",
+    contactName: customer.contactName || "—",
+    email: customer.email || "—",
+    phone: customer.phone || "—",
+    revenue: customer.revenue || "₹0",
+    revenuePct: customer.revenuePct || "0% of total",
+    outstanding: customer.outstanding || "₹0",
+    outstandingNote: customer.outstandingNote || "No invoices",
+    status: (customer.status as CustomerStatus) || "Active",
+    isNew: customer.isNew,
+  };
+}
+
 export default function CustomersScreen() {
-  const { items: customers, add, remove, update, setItems } = useCollection<Customer>("customers");
+  const [customers, setCustomers] = useState<Customer[]>([]);
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState("All Customers");
   const toast = useToast();
@@ -203,6 +239,54 @@ export default function CustomersScreen() {
   const [editTarget, setEditTarget] = useState<Customer | null>(null);
   const [viewTarget, setViewTarget] = useState<Customer | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Customer | null>(null);
+
+  useEffect(() => {
+    async function loadCustomers() {
+      try {
+        const response = await fetch("/api/customers");
+        if (!response.ok) {
+          throw new Error("Failed to load customers");
+        }
+        const data = (await response.json()) as ApiCustomer[];
+        setCustomers(data.map(mapApiCustomer));
+      } catch {
+        setCustomers([]);
+      }
+    }
+
+    void loadCustomers();
+  }, []);
+
+  async function addCustomer(customer: Customer) {
+    try {
+      const response = await fetch("/api/customers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(customer),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create customer");
+      }
+
+      const created = (await response.json()) as ApiCustomer;
+      setCustomers((current) => [mapApiCustomer(created), ...current]);
+      toast("Customer created successfully.");
+    } catch {
+      toast("Unable to create customer right now.");
+    }
+  }
+
+  async function updateCustomer(item: Customer, patch: Partial<Customer>) {
+    const updated = { ...item, ...patch };
+    setCustomers((current) => current.map((entry) => (entry.name === item.name ? updated : entry)));
+    toast("Customer updated.");
+  }
+
+  function removeCustomer(item: Customer) {
+    setCustomers((current) => current.filter((entry) => entry.name !== item.name));
+    toast("Customer removed from the current view.");
+  }
 
   const q = query.trim().toLowerCase();
   const filtered = customers.filter((c) => {
@@ -238,7 +322,12 @@ export default function CustomersScreen() {
             <UploadButton<Customer>
               label="Upload CSV"
               build={buildImportedCustomer}
-              onImport={(records) => setItems([...records, ...customers])}
+              onImport={async (records) => {
+                const imported = records.filter(Boolean);
+                for (const record of imported) {
+                  await addCustomer(record);
+                }
+              }}
             />
             <Button variant="bronze" size="sm" onClick={() => setCreateOpen(true)}>
               <Plus size={16} /> Create Customer
@@ -683,8 +772,12 @@ export default function CustomersScreen() {
           setCreateOpen(false);
           setEditTarget(null);
         }}
-        onCreate={(customer) => add(customer)}
-        onUpdate={(item, patch) => update(item, patch)}
+        onCreate={(customer) => {
+          void addCustomer(customer);
+        }}
+        onUpdate={(item, patch) => {
+          void updateCustomer(item, patch);
+        }}
       />
 
       <Modal
@@ -701,7 +794,7 @@ export default function CustomersScreen() {
             <button
               type="button"
               onClick={() => {
-                if (deleteTarget) remove(deleteTarget);
+                if (deleteTarget) removeCustomer(deleteTarget);
                 setDeleteTarget(null);
               }}
               className="h-11 px-5 rounded-xl bg-danger text-white text-sm font-medium hover:opacity-90 transition"

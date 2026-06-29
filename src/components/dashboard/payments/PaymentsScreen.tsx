@@ -39,7 +39,6 @@ import {
   type PaymentDirection,
   type PaymentMethod,
 } from "@/data/payments";
-import { useCollection } from "@/lib/store/dataStore";
 import { exportCsv } from "@/lib/exportCsv";
 import UploadButton from "@/components/ui/UploadButton";
 import DetailModal from "@/components/ui/DetailModal";
@@ -109,7 +108,7 @@ function tabPredicate(tab: string, payment: Payment): boolean {
 }
 
 export default function PaymentsScreen() {
-  const { items: payments, add, remove, update, setItems } = useCollection<Payment>("payments");
+  const [payments, setPayments] = useState<Payment[]>([]);
   const toast = useToast();
   const [tab, setTab] = useState("All");
   const [query, setQuery] = useState("");
@@ -118,6 +117,66 @@ export default function PaymentsScreen() {
   const [editTarget, setEditTarget] = useState<Payment | null>(null);
   const [viewTarget, setViewTarget] = useState<Payment | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Payment | null>(null);
+
+  useEffect(() => {
+    void loadPayments();
+  }, []);
+
+  async function loadPayments() {
+    try {
+      const response = await fetch("/api/payments");
+      if (!response.ok) throw new Error("Failed to load payments");
+      const data = (await response.json()) as Payment[];
+      setPayments(data);
+    } catch {
+      toast("Unable to load payments right now.", "error");
+    }
+  }
+
+  async function addPayment(payment: Payment) {
+    try {
+      const response = await fetch("/api/payments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payment),
+      });
+      if (!response.ok) throw new Error("Failed to create payment");
+      const created = (await response.json()) as Payment;
+      setPayments((current) => [created, ...current]);
+      toast("Payment recorded.");
+    } catch {
+      toast("Unable to record payment right now.");
+    }
+  }
+
+  async function updatePayment(item: Payment, patch: Partial<Payment>) {
+    if (!item.id) return;
+    try {
+      const response = await fetch(`/api/payments/${item.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...item, ...patch }),
+      });
+      if (!response.ok) throw new Error("Failed to update payment");
+      const updated = (await response.json()) as Payment;
+      setPayments((current) => current.map((entry) => (entry.id === item.id ? updated : entry)));
+      toast("Payment updated.");
+    } catch {
+      toast("Unable to update payment right now.");
+    }
+  }
+
+  async function removePayment(item: Payment) {
+    if (!item.id) return;
+    try {
+      const response = await fetch(`/api/payments/${item.id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("Failed to delete payment");
+      setPayments((current) => current.filter((entry) => entry.id !== item.id));
+      toast("Payment removed.");
+    } catch {
+      toast("Unable to delete payment right now.");
+    }
+  }
 
   const q = query.trim().toLowerCase();
   const filtered = payments.filter((payment) => {
@@ -386,7 +445,7 @@ export default function PaymentsScreen() {
                         <MenuItem
                           icon={Link2}
                           onClick={() => {
-                            update(payment, { status: "Completed" });
+                            void updatePayment(payment, { status: "Completed" });
                             toast(`Payment ${payment.id} reconciled.`);
                           }}
                         >

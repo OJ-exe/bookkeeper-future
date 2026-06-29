@@ -21,4 +21,20 @@ export type Payment = {
   transactionId?: number | null;
 };
 
-export const paymentTabs = ["All", "Received", "Made", "Pending", "Scheduled", "Failed"];
+export type PaymentCreateInput = {
+  date?: string;
+  party: string;
+  direction?: PaymentDirection;
+  method?: PaymentMethod;
+  reference?: string;
+  status?: PaymentStatus;
+  amount?: string;
+  customerId?: number | null;
+  vendorId?: number | null;
+  invoiceId?: number | null;
+  billId?: number | null;
+  bankAccountId?: number | null;
+  transactionId?: number | null;
+};
+
+export type PaymentUpdateInput = Partial<PaymentCreateInput>;

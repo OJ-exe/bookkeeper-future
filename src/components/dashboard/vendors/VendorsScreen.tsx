@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Search,
   Filter,
@@ -48,7 +48,6 @@ import {
   type Vendor,
   type VendorStatus,
 } from "@/data/vendors";
-import { useCollection } from "@/lib/store/dataStore";
 import { downloadCsvTemplate } from "@/lib/exportCsv";
 import UploadButton from "@/components/ui/UploadButton";
 import DetailModal from "@/components/ui/DetailModal";
@@ -136,8 +135,45 @@ const quickActions: { icon: LucideIcon; label: string }[] = [
   { icon: UploadIcon, label: "Import Vendors" },
 ];
 
+type ApiVendor = {
+  id: number;
+  name: string;
+  initials: string | null;
+  preferred: boolean;
+  gstin: string | null;
+  city: string | null;
+  contactName: string | null;
+  email: string | null;
+  phone: string | null;
+  spend: string | null;
+  spendPct: string | null;
+  payable: string | null;
+  payableNote: string | null;
+  status: string | null;
+  isNew: boolean;
+};
+
+function mapApiVendor(vendor: ApiVendor): Vendor {
+  return {
+    name: vendor.name,
+    initials: vendor.initials || vendor.name.slice(0, 2).toUpperCase(),
+    preferred: vendor.preferred,
+    gstin: vendor.gstin || "—",
+    city: vendor.city || "—",
+    contactName: vendor.contactName || "—",
+    email: vendor.email || "—",
+    phone: vendor.phone || "—",
+    spend: vendor.spend || "₹0",
+    spendPct: vendor.spendPct || "0% of total",
+    payable: vendor.payable || "₹0",
+    payableNote: vendor.payableNote || "No bills",
+    status: (vendor.status as VendorStatus) || "Active",
+    isNew: vendor.isNew,
+  };
+}
+
 export default function VendorsScreen() {
-  const { items: vendors, add, remove, update, setItems } = useCollection<Vendor>("vendors");
+  const [vendors, setVendors] = useState<Vendor[]>([]);
   const toast = useToast();
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState("All Vendors");
@@ -145,6 +181,49 @@ export default function VendorsScreen() {
   const [editTarget, setEditTarget] = useState<Vendor | null>(null);
   const [viewTarget, setViewTarget] = useState<Vendor | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Vendor | null>(null);
+
+  useEffect(() => {
+    async function loadVendors() {
+      try {
+        const response = await fetch("/api/vendors");
+        if (!response.ok) throw new Error("Failed to load vendors");
+        const data = (await response.json()) as ApiVendor[];
+        setVendors(data.map(mapApiVendor));
+      } catch {
+        setVendors([]);
+      }
+    }
+
+    void loadVendors();
+  }, []);
+
+  async function addVendor(vendor: Vendor) {
+    try {
+      const response = await fetch("/api/vendors", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(vendor),
+      });
+
+      if (!response.ok) throw new Error("Failed to create vendor");
+      const created = (await response.json()) as ApiVendor;
+      setVendors((current) => [mapApiVendor(created), ...current]);
+      toast("Vendor created successfully.");
+    } catch {
+      toast("Unable to create vendor right now.");
+    }
+  }
+
+  async function updateVendor(item: Vendor, patch: Partial<Vendor>) {
+    const updated = { ...item, ...patch };
+    setVendors((current) => current.map((entry) => (entry.name === item.name ? updated : entry)));
+    toast("Vendor updated.");
+  }
+
+  async function removeVendor(item: Vendor) {
+    setVendors((current) => current.filter((entry) => entry.name !== item.name));
+    toast("Vendor removed from the current view.");
+  }
 
   const q = query.trim().toLowerCase();
   const filtered = vendors.filter((v) => {
@@ -181,7 +260,12 @@ export default function VendorsScreen() {
             <UploadButton<Vendor>
               label="Upload CSV"
               build={buildImportedVendor}
-              onImport={(records) => setItems([...records, ...vendors])}
+              onImport={async (records) => {
+                const imported = records.filter(Boolean);
+                for (const record of imported) {
+                  await addVendor(record);
+                }
+              }}
             />
             <Button variant="bronze" size="sm" onClick={() => setCreateOpen(true)}>
               <Plus size={16} /> Create Vendor
@@ -596,8 +680,12 @@ export default function VendorsScreen() {
           setCreateOpen(false);
           setEditTarget(null);
         }}
-        onCreate={(vendor) => add(vendor)}
-        onUpdate={(item, patch) => update(item, patch)}
+        onCreate={(vendor) => {
+          void addVendor(vendor);
+        }}
+        onUpdate={(item, patch) => {
+          void updateVendor(item, patch);
+        }}
       />
 
       <Modal
@@ -614,7 +702,9 @@ export default function VendorsScreen() {
             <button
               type="button"
               onClick={() => {
-                if (deleteTarget) remove(deleteTarget);
+                if (deleteTarget) {
+                  void removeVendor(deleteTarget);
+                }
                 setDeleteTarget(null);
               }}
               className="h-11 px-5 rounded-xl bg-danger text-white text-sm font-medium hover:opacity-90 transition"

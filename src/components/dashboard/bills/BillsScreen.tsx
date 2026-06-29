@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Search,
   Filter,
@@ -32,8 +32,8 @@ import { Menu, MenuItem, MenuLabel, MenuDivider } from "@/components/ui/Menu";
 
 import CreateBillModal from "@/components/dashboard/bills/CreateBillModal";
 
-import { billTabs, type Bill, type BillStatus } from "@/data/bills";
-import { useCollection } from "@/lib/store/dataStore";
+import { billTabs } from "@/data/bills";
+import type { Bill, BillStatus } from "@/types/bill";
 import { exportCsv, downloadCsvTemplate } from "@/lib/exportCsv";
 import { consumeCreate } from "@/lib/quickAction";
 import UploadButton from "@/components/ui/UploadButton";
@@ -94,8 +94,43 @@ function tabPredicate(tab: string, bill: Bill): boolean {
   }
 }
 
+function parseAmount(value: string | undefined | null) {
+  if (!value) return 0;
+  const normalized = value.replace(/[₹,]/g, "").trim();
+  const parsed = Number.parseFloat(normalized);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+type ApiBill = {
+  id: number;
+  number: string;
+  date: string | null;
+  due: string | null;
+  vendor: string;
+  source: string | null;
+  status: string | null;
+  grandTotal: string | null;
+  netPayable: string | null;
+  open: string | null;
+};
+
+function mapApiBill(bill: ApiBill): Bill {
+  return {
+    id: bill.id,
+    number: bill.number,
+    date: bill.date || "—",
+    due: bill.due || "—",
+    vendor: bill.vendor,
+    source: bill.source || "Direct",
+    status: (bill.status as BillStatus) || "Open",
+    grandTotal: bill.grandTotal || "₹0",
+    netPayable: bill.netPayable || "₹0",
+    open: bill.open || "₹0",
+  };
+}
+
 export default function BillsScreen() {
-  const { items: bills, add, remove, update, setItems } = useCollection<Bill>("bills");
+  const [bills, setBills] = useState<Bill[]>([]);
   const toast = useToast();
   const [tab, setTab] = useState("All");
   const [query, setQuery] = useState("");
@@ -104,6 +139,89 @@ export default function BillsScreen() {
   const [editTarget, setEditTarget] = useState<Bill | null>(null);
   const [viewTarget, setViewTarget] = useState<Bill | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Bill | null>(null);
+
+  useEffect(() => {
+    async function loadBills() {
+      try {
+        const response = await fetch("/api/bills");
+        if (!response.ok) {
+          throw new Error("Failed to load bills");
+        }
+        const data = (await response.json()) as ApiBill[];
+        setBills(data.map(mapApiBill));
+      } catch {
+        setBills([]);
+      }
+    }
+
+    void loadBills();
+  }, []);
+
+  async function addBill(bill: Bill) {
+    try {
+      const response = await fetch("/api/bills", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(bill),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create bill");
+      }
+
+      const created = (await response.json()) as ApiBill;
+      setBills((current) => [mapApiBill(created), ...current]);
+      toast("Bill created successfully.");
+    } catch {
+      toast("Unable to create bill right now.");
+    }
+  }
+
+  async function updateBill(item: Bill, patch: Partial<Bill>) {
+    if (!item.id) {
+      toast("Unable to update bill right now.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/bills/${item.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...item, ...patch }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update bill");
+      }
+
+      const updated = (await response.json()) as ApiBill;
+      setBills((current) =>
+        current.map((entry) => (entry.number === item.number ? mapApiBill(updated) : entry))
+      );
+      toast("Bill updated.");
+    } catch {
+      toast("Unable to update bill right now.");
+    }
+  }
+
+  async function removeBill(item: Bill) {
+    if (!item.id) {
+      toast("Unable to delete bill right now.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/bills/${item.id}`, { method: "DELETE" });
+      if (!response.ok) {
+        throw new Error("Failed to delete bill");
+      }
+
+      setBills((current) => current.filter((entry) => entry.number !== item.number));
+      toast("Bill removed from the current view.");
+    } catch {
+      toast("Unable to delete bill right now.");
+    }
+  }
 
   const q = query.trim().toLowerCase();
   const filtered = bills.filter((bill) => {
@@ -117,6 +235,20 @@ export default function BillsScreen() {
   });
 
   const allSelected = filtered.length > 0 && filtered.every((bill) => selected.has(bill.number));
+
+  const totalPayable = bills.reduce((sum, bill) => sum + parseAmount(bill.grandTotal), 0);
+  const openBillsValue = bills
+    .filter((bill) => bill.status === "Open" || bill.status === "Overdue")
+    .reduce((sum, bill) => sum + parseAmount(bill.open), 0);
+  const overdueValue = bills
+    .filter((bill) => bill.status === "Overdue")
+    .reduce((sum, bill) => sum + parseAmount(bill.open), 0);
+  const paidValue = bills
+    .filter((bill) => bill.status === "Paid")
+    .reduce((sum, bill) => sum + parseAmount(bill.grandTotal), 0);
+
+  const formatCurrency = (amount: number) =>
+    `₹${amount.toLocaleString("en-IN", { maximumFractionDigits: 0 })}`;
 
   function toggleOne(number: string) {
     setSelected((prev) => {
@@ -162,7 +294,11 @@ export default function BillsScreen() {
             <UploadButton<Bill>
               label="Upload CSV"
               build={buildImportedBill}
-              onImport={(records) => setItems([...records, ...bills])}
+              onImport={async (records) => {
+                for (const record of records) {
+                  await addBill(record);
+                }
+              }}
             />
             <Button variant="bronze" size="sm" onClick={() => setCreateOpen(true)}>
               <Plus size={16} /> Create Bill
@@ -176,30 +312,30 @@ export default function BillsScreen() {
         <StatCard
           icon={FileText}
           label="Total Payable"
-          value="₹1.4M"
+          value={formatCurrency(totalPayable)}
           tone="bronze"
         />
         <StatCard
           icon={Receipt}
           label="Open Bills"
-          value="₹620K"
-          sublabel="14 bills"
+          value={formatCurrency(openBillsValue)}
+          sublabel={`${bills.filter((bill) => bill.status === "Open" || bill.status === "Overdue").length} bills`}
           tone="warning"
         />
         <StatCard
           icon={AlertTriangle}
           label="Overdue"
-          value="₹180K"
-          sublabel="4 bills"
+          value={formatCurrency(overdueValue)}
+          sublabel={`${bills.filter((bill) => bill.status === "Overdue").length} bills`}
           sublabelTone="muted"
           tone="danger"
         />
         <StatCard
           icon={CircleCheck}
           label="Paid This Month"
-          value="₹2.1M"
+          value={formatCurrency(paidValue)}
           tone="success"
-          trend={{ dir: "up", text: "9% vs last month" }}
+          trend={{ dir: "up", text: "Live from database" }}
         />
         <StatCard
           icon={Percent}
@@ -492,8 +628,8 @@ export default function BillsScreen() {
           setCreateOpen(false);
           setEditTarget(null);
         }}
-        onCreate={(bill) => add(bill)}
-        onUpdate={(item, patch) => update(item, patch)}
+        onCreate={addBill}
+        onUpdate={updateBill}
       />
 
       <Modal
@@ -510,7 +646,9 @@ export default function BillsScreen() {
             <button
               type="button"
               onClick={() => {
-                if (deleteTarget) remove(deleteTarget);
+                if (deleteTarget) {
+                  void removeBill(deleteTarget);
+                }
                 setDeleteTarget(null);
               }}
               className="h-11 px-5 rounded-xl bg-danger text-white text-sm font-medium hover:opacity-90 transition"

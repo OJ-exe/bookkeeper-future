@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
-import type { Bill } from "@/data/bills";
+import type { Bill } from "@/types/bill";
 
 const vendorOptions = [
   "Sharma Supplies",

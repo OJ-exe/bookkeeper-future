@@ -4,7 +4,7 @@ import { useState, type FormEvent } from "react";
 
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
-import { bankAccounts, type BankTxn } from "@/data/banking";
+import { type BankAccount, type BankTxn } from "@/data/banking";
 
 const fieldClass =
   "w-full rounded-xl border border-line bg-canvas px-3 py-2.5 text-sm text-fg outline-none placeholder:text-muted focus:border-bronze transition";
@@ -37,15 +37,17 @@ export default function AddTransactionModal({
   onCreate,
   editing,
   onUpdate,
+  accounts,
 }: {
   open: boolean;
   onClose: () => void;
   onCreate: (txn: BankTxn) => void;
   editing?: BankTxn | null;
   onUpdate?: (item: BankTxn, patch: Partial<BankTxn>) => void;
+  accounts: BankAccount[];
 }) {
   const isEdit = !!editing;
-  const [account, setAccount] = useState(editing?.account ?? bankAccounts[0].name);
+  const [account, setAccount] = useState(editing?.account ?? accounts[0]?.name ?? "");
   const [date, setDate] = useState(toDateInput(editing?.date ?? ""));
   const [kind, setKind] = useState<BankTxn["kind"]>(editing?.kind ?? "Inflow");
   const [description, setDescription] = useState(editing?.description ?? "");
@@ -53,7 +55,7 @@ export default function AddTransactionModal({
   const [amount, setAmount] = useState(unblank(editing?.amount));
 
   function reset() {
-    setAccount(bankAccounts[0].name);
+    setAccount(accounts[0]?.name ?? "");
     setDate("");
     setKind("Inflow");
     setDescription("");
@@ -77,7 +79,6 @@ export default function AddTransactionModal({
       return;
     }
     onCreate({
-      id: `TXN-${Math.floor(100 + Math.random() * 900)}`,
       date: formatDate(date),
       description: description.trim(),
       reference: reference.trim() || "—",
@@ -126,7 +127,7 @@ export default function AddTransactionModal({
             onChange={(e) => setAccount(e.target.value)}
             className={fieldClass}
           >
-            {bankAccounts.map((a) => (
+            {accounts.map((a) => (
               <option key={a.name} value={a.name}>
                 {a.name} ({a.accountNo})
               </option>

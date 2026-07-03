@@ -1,8 +1,11 @@
+"use client";
+
 import { CheckCircle2, RefreshCw, AlertTriangle, FileText } from "lucide-react";
 import Card from "@/components/ui/Card";
 import InsightsList, { type Insight } from "@/components/ui/InsightsList";
+import { useDashboardAnalytics } from "@/lib/useDashboardAnalytics";
 
-const items: Insight[] = [
+const fallbackItems: Insight[] = [
   {
     icon: CheckCircle2,
     tone: "success",
@@ -30,20 +33,23 @@ const items: Insight[] = [
 ];
 
 export default function InsightsPanel() {
+  const { data } = useDashboardAnalytics();
+  const items = (data?.insights ?? fallbackItems).map((item) => ({
+    ...item,
+    icon: item.tone === "warning" ? AlertTriangle : item.tone === "success" ? CheckCircle2 : RefreshCw,
+  }));
+
   return (
     <Card className="flex flex-col h-full">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold text-fg">Insights</h2>
-        <button
-          type="button"
-          className="text-xs font-medium text-bronze hover:underline"
-        >
+        <button type="button" className="text-xs font-medium text-bronze hover:underline">
           View All
         </button>
       </div>
 
       <div className="mt-4">
-        <InsightsList items={items} />
+        <InsightsList items={items as Insight[]} />
       </div>
     </Card>
   );

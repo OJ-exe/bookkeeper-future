@@ -1,31 +1,34 @@
+"use client";
+
 import { Check } from "lucide-react";
 import Card from "@/components/ui/Card";
-
-const tasks = [
-  { label: "Complete Company Profile", note: "by you", done: true },
-  { label: "Connect Bank Account", note: "by you", done: true },
-  { label: "Add First Customer", note: "by you", done: false },
-  { label: "Create First Invoice", note: "by you", done: false },
-];
-
-const PROGRESS = 50;
+import { useDashboardAnalytics } from "@/lib/useDashboardAnalytics";
 
 export default function TodaysFocusCard() {
+  const { data } = useDashboardAnalytics();
+  const tasks = data?.focusTasks?.length
+    ? data.focusTasks
+    : [
+        { label: "Complete Company Profile", note: "by you", done: true },
+        { label: "Connect Bank Account", note: "by you", done: true },
+        { label: "Add First Customer", note: "by you", done: false },
+        { label: "Create First Invoice", note: "by you", done: false },
+      ];
+  const completedCount = tasks.filter((task) => task.done).length;
+  const progress = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
+
   return (
     <Card className="flex flex-col h-full">
       <div className="flex items-center justify-between">
         <h2 className="text-sm font-semibold text-fg">Today&apos;s Focus</h2>
-        <span className="text-xs text-muted">2 of 4 tasks completed</span>
+        <span className="text-xs text-muted">{completedCount} of {tasks.length} tasks completed</span>
       </div>
 
       <div className="mt-3 flex items-center gap-3">
         <div className="h-2 flex-1 rounded-full bg-bronze-soft">
-          <div
-            className="h-2 rounded-full bg-bronze"
-            style={{ width: `${PROGRESS}%` }}
-          />
+          <div className="h-2 rounded-full bg-bronze" style={{ width: `${progress}%` }} />
         </div>
-        <span className="text-xs font-medium text-bronze">{PROGRESS}%</span>
+        <span className="text-xs font-medium text-bronze">{progress}%</span>
       </div>
 
       <ul className="mt-5 space-y-3.5">
@@ -43,9 +46,7 @@ export default function TodaysFocusCard() {
             <div className="min-w-0">
               <p
                 className={
-                  t.done
-                    ? "text-sm text-muted line-through"
-                    : "text-sm font-medium text-fg"
+                  t.done ? "text-sm text-muted line-through" : "text-sm font-medium text-fg"
                 }
               >
                 {t.label}
@@ -57,10 +58,7 @@ export default function TodaysFocusCard() {
       </ul>
 
       <div className="mt-auto pt-5 text-center">
-        <button
-          type="button"
-          className="text-xs font-medium text-bronze hover:underline"
-        >
+        <button type="button" className="text-xs font-medium text-bronze hover:underline">
           View All Tasks
         </button>
       </div>

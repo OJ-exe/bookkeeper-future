@@ -13,8 +13,9 @@ import {
 import Card from "@/components/ui/Card";
 import CardSelect from "@/components/ui/CardSelect";
 import { useChartColors } from "@/lib/useChartColors";
+import { useDashboardAnalytics } from "@/lib/useDashboardAnalytics";
 
-const data = [
+const fallbackData = [
   { month: "Jan", revenue: 45000, expenses: 18000 },
   { month: "Feb", revenue: 52000, expenses: 22000 },
   { month: "Mar", revenue: 48000, expenses: 21000 },
@@ -24,7 +25,9 @@ const data = [
 ];
 
 export default function RevenueExpensesChart() {
+  const { data } = useDashboardAnalytics();
   const c = useChartColors();
+  const chartData = data?.revenueExpenses?.length ? data.revenueExpenses : fallbackData;
 
   return (
     <Card className="h-full flex flex-col">
@@ -35,7 +38,7 @@ export default function RevenueExpensesChart() {
 
       <div className="flex-1 min-h-72">
         <ResponsiveContainer width="100%" height="100%">
-          <BarChart data={data} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
+          <BarChart data={chartData} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={c.grid} />
             <XAxis
               dataKey="month"

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Search,
   Filter,
@@ -45,7 +45,6 @@ import {
   type Account,
   type AccountType,
 } from "@/data/accounts";
-import { useCollection } from "@/lib/store/dataStore";
 import { exportCsv, downloadCsvTemplate } from "@/lib/exportCsv";
 import UploadButton from "@/components/ui/UploadButton";
 import DetailModal from "@/components/ui/DetailModal";
@@ -111,8 +110,31 @@ function chipPredicate(chip: string, a: Account): boolean {
   }
 }
 
+type ApiAccount = {
+  id: number;
+  code: string;
+  name: string;
+  type: string;
+  subtype: string;
+  balance: string | null;
+  linked: number | null;
+  note: string | null;
+};
+
+function mapApiAccount(account: ApiAccount): Account {
+  return {
+    code: account.code,
+    name: account.name,
+    type: (account.type as AccountType) || "Asset",
+    subtype: account.subtype || "Current Assets",
+    balance: account.balance || "₹0.00",
+    linked: account.linked || 0,
+    note: account.note || "Default account",
+  };
+}
+
 export default function AccountsScreen() {
-  const { items: accounts, add, remove, update, setItems } = useCollection<Account>("accounts");
+  const [accounts, setAccounts] = useState<Account[]>([]);
   const toast = useToast();
   const [query, setQuery] = useState("");
   const [chip, setChip] = useState("All Types");
@@ -121,6 +143,78 @@ export default function AccountsScreen() {
   const [editTarget, setEditTarget] = useState<Account | null>(null);
   const [viewTarget, setViewTarget] = useState<Account | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Account | null>(null);
+
+  useEffect(() => {
+    async function loadAccounts() {
+      try {
+        const response = await fetch("/api/accounts");
+        if (!response.ok) throw new Error("Failed to load accounts");
+        const data = (await response.json()) as ApiAccount[];
+        setAccounts(data.map(mapApiAccount));
+      } catch {
+        setAccounts([]);
+      }
+    }
+
+    void loadAccounts();
+  }, []);
+
+  async function addAccount(account: Account) {
+    try {
+      const response = await fetch("/api/accounts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(account),
+      });
+
+      if (!response.ok) throw new Error("Failed to create account");
+      const created = (await response.json()) as ApiAccount;
+      setAccounts((current) => [mapApiAccount(created), ...current]);
+      toast("Account created successfully.");
+    } catch {
+      toast("Unable to create account right now.");
+    }
+  }
+
+  async function updateAccount(item: Account, patch: Partial<Account>) {
+    const id = accounts.findIndex((entry) => entry.code === item.code && entry.name === item.name);
+    if (id === -1) {
+      setAccounts((current) => current.map((entry) => (entry.code === item.code ? { ...entry, ...patch } : entry)));
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/accounts/${id + 1}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...item, ...patch }),
+      });
+
+      if (!response.ok) throw new Error("Failed to update account");
+      const updated = (await response.json()) as ApiAccount;
+      setAccounts((current) => current.map((entry) => (entry.code === item.code ? mapApiAccount(updated) : entry)));
+      toast("Account updated.");
+    } catch {
+      toast("Unable to update account right now.");
+    }
+  }
+
+  async function removeAccount(item: Account) {
+    const id = accounts.findIndex((entry) => entry.code === item.code && entry.name === item.name);
+    if (id === -1) {
+      setAccounts((current) => current.filter((entry) => entry.code !== item.code));
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/accounts/${id + 1}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("Failed to delete account");
+      setAccounts((current) => current.filter((entry) => entry.code !== item.code));
+      toast("Account removed.");
+    } catch {
+      toast("Unable to delete account right now.");
+    }
+  }
 
   function selectChip(c: string) {
     setChip(c);
@@ -192,7 +286,11 @@ export default function AccountsScreen() {
             <UploadButton<Account>
               label="Upload CSV"
               build={buildImportedAccount}
-              onImport={(records) => setItems([...records, ...accounts])}
+              onImport={(records) => {
+                void Promise.all(records.map((record) => addAccount(record))).then(() => {
+                  setAccounts((current) => [...records, ...current]);
+                });
+              }}
             />
             <Button variant="bronze" size="sm" onClick={() => setCreateOpen(true)}>
               <Plus size={16} /> Create Account
@@ -378,7 +476,7 @@ export default function AccountsScreen() {
                               <MenuItem
                                 icon={Copy}
                                 onClick={() => {
-                                  add({
+                                  void addAccount({
                                     ...a,
                                     code: a.code ? a.code + "-COPY" : "",
                                     name: a.name + " (Copy)",
@@ -469,8 +567,8 @@ export default function AccountsScreen() {
           setCreateOpen(false);
           setEditTarget(null);
         }}
-        onCreate={(account) => add(account)}
-        onUpdate={(item, patch) => update(item, patch)}
+        onCreate={(account) => void addAccount(account)}
+        onUpdate={(item, patch) => void updateAccount(item, patch)}
       />
 
       <Modal
@@ -487,7 +585,7 @@ export default function AccountsScreen() {
             <button
               type="button"
               onClick={() => {
-                if (deleteTarget) remove(deleteTarget);
+                if (deleteTarget) void removeAccount(deleteTarget);
                 setDeleteTarget(null);
               }}
               className="h-11 px-5 rounded-xl bg-danger text-white text-sm font-medium hover:opacity-90 transition"

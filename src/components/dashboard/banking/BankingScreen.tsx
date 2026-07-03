@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import {
   Search,
   Filter,
@@ -33,17 +33,27 @@ import { Menu, MenuItem } from "@/components/ui/Menu";
 import AddTransactionModal from "@/components/dashboard/banking/AddTransactionModal";
 
 import {
-  bankAccounts,
   bankTxnTabs,
+  type BankAccount,
   type BankTxn,
   type TxnStatus,
 } from "@/data/banking";
-import { useCollection } from "@/lib/store/dataStore";
 import UploadButton from "@/components/ui/UploadButton";
 import DetailModal from "@/components/ui/DetailModal";
 import { useToast } from "@/components/ui/Toast";
 
 const txnStatuses: TxnStatus[] = ["Matched", "Unmatched", "Excluded"];
+
+function parseAmount(value?: string | null) {
+  if (typeof value !== "string") return 0;
+  const normalized = value.replace(/[^\d.-]/g, "");
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function formatCurrency(value: number) {
+  return `₹${Math.round(value).toLocaleString("en-IN")}`;
+}
 
 function buildImportedBankTxn(row: Record<string, string>): BankTxn | null {
   const description = (row["Description"] ?? row["description"] ?? "").trim();
@@ -53,13 +63,12 @@ function buildImportedBankTxn(row: Record<string, string>): BankTxn | null {
   const rawStatus = (row["Status"] ?? "").trim() as TxnStatus;
   const status: TxnStatus = txnStatuses.includes(rawStatus) ? rawStatus : "Unmatched";
   return {
-    id: `TXN-${Math.floor(1000 + Math.random() * 9000)}`,
     date: row["Date"]?.trim() || "—",
     description,
     reference: row["Reference"]?.trim() || "—",
     kind,
     amount: row["Amount"]?.trim() || "₹0",
-    account: row["Account"]?.trim() || bankAccounts[0].name,
+    account: row["Account"]?.trim() || "Cash in Hand",
     status,
   };
 }
@@ -94,7 +103,8 @@ function tabPredicate(tab: string, txn: BankTxn): boolean {
 }
 
 export default function BankingScreen() {
-  const { items: bankTxns, add, remove, update, setItems } = useCollection<BankTxn>("bankTxns");
+  const [bankAccounts, setBankAccounts] = useState<BankAccount[]>([]);
+  const [bankTxns, setBankTxns] = useState<BankTxn[]>([]);
   const toast = useToast();
   const [tab, setTab] = useState("All Transactions");
   const [query, setQuery] = useState("");
@@ -104,6 +114,108 @@ export default function BankingScreen() {
   const [viewTxn, setViewTxn] = useState<BankTxn | null>(null);
   const [bankOpen, setBankOpen] = useState(false);
   const [deleteTxn, setDeleteTxn] = useState<BankTxn | null>(null);
+  const [bankDraft, setBankDraft] = useState({
+    name: "",
+    accountNo: "",
+    balance: "",
+    ledger: "",
+  });
+
+  useEffect(() => {
+    void loadAccounts();
+    void loadTransactions();
+  }, []);
+
+  async function loadAccounts() {
+    try {
+      const response = await fetch("/api/bank-accounts");
+      if (!response.ok) throw new Error("Failed to load bank accounts");
+      const data = (await response.json()) as BankAccount[];
+      setBankAccounts(data);
+    } catch {
+      setBankAccounts([]);
+    }
+  }
+
+  async function loadTransactions() {
+    try {
+      const response = await fetch("/api/transactions");
+      if (!response.ok) throw new Error("Failed to load transactions");
+      const data = (await response.json()) as BankTxn[];
+      setBankTxns(data);
+    } catch {
+      setBankTxns([]);
+    }
+  }
+
+  async function addTransaction(txn: BankTxn) {
+    try {
+      const response = await fetch("/api/transactions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(txn),
+      });
+      if (!response.ok) throw new Error("Failed to create transaction");
+      const created = (await response.json()) as BankTxn;
+      setBankTxns((current) => [created, ...current]);
+      toast("Transaction added.");
+    } catch {
+      toast("Unable to add transaction right now.");
+    }
+  }
+
+  async function updateTransaction(item: BankTxn, patch: Partial<BankTxn>) {
+    if (!item.id) return;
+    try {
+      const response = await fetch(`/api/transactions/${item.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...item, ...patch }),
+      });
+      if (!response.ok) throw new Error("Failed to update transaction");
+      const updated = (await response.json()) as BankTxn;
+      setBankTxns((current) => current.map((entry) => (entry.id === item.id ? updated : entry)));
+      toast("Transaction updated.");
+    } catch {
+      toast("Unable to update transaction right now.");
+    }
+  }
+
+  async function removeTransaction(item: BankTxn) {
+    if (!item.id) return;
+    try {
+      const response = await fetch(`/api/transactions/${item.id}`, { method: "DELETE" });
+      if (!response.ok) throw new Error("Failed to delete transaction");
+      setBankTxns((current) => current.filter((entry) => entry.id !== item.id));
+      toast("Transaction removed.");
+    } catch {
+      toast("Unable to delete transaction right now.");
+    }
+  }
+
+  async function addBankAccount(e: FormEvent) {
+    e.preventDefault();
+    try {
+      const response = await fetch("/api/bank-accounts", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: bankDraft.name,
+          accountNo: bankDraft.accountNo,
+          balance: bankDraft.balance || "₹0",
+          ledger: bankDraft.ledger || bankDraft.name,
+        }),
+      });
+      if (!response.ok) throw new Error("Failed to create bank account");
+      const created = (await response.json()) as BankAccount;
+      setBankAccounts((current) => [created, ...current]);
+      setBankDraft({ name: "", accountNo: "", balance: "", ledger: "" });
+      setBankOpen(false);
+      toast("Bank account added.");
+    } catch {
+      toast("Unable to add bank account right now.");
+    }
+  }
 
   const q = query.trim().toLowerCase();
   const filtered = bankTxns.filter((txn) => {
@@ -116,10 +228,10 @@ export default function BankingScreen() {
     return matchesAccount && matchesQuery && tabPredicate(tab, txn);
   });
 
-  function handleAddBank(e: FormEvent) {
-    e.preventDefault();
-    setBankOpen(false);
-  }
+  const totalBalance = bankAccounts.reduce((sum, account) => sum + parseAmount(account.balance), 0);
+  const unmatchedCount = bankTxns.filter((txn) => txn.status === "Unmatched").length;
+  const matchedCount = bankTxns.filter((txn) => txn.status === "Matched").length;
+  const reconciledPct = bankTxns.length ? Math.round((matchedCount / bankTxns.length) * 100) : 0;
 
   return (
     <div className="space-y-8">
@@ -132,7 +244,11 @@ export default function BankingScreen() {
             <UploadButton<BankTxn>
               label="Import Statement"
               build={buildImportedBankTxn}
-              onImport={(records) => setItems([...records, ...bankTxns])}
+              onImport={async (records) => {
+                for (const record of records.filter(Boolean)) {
+                  await addTransaction(record);
+                }
+              }}
             />
             <Button variant="outline" size="sm" onClick={() => setBankOpen(true)}>
               <Plus size={16} /> Add Bank
@@ -146,11 +262,11 @@ export default function BankingScreen() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
-        <StatCard icon={Wallet} label="Total Balance" value="₹6.8L" tone="bronze" />
+        <StatCard icon={Wallet} label="Total Balance" value={formatCurrency(totalBalance)} tone="bronze" />
         <StatCard
           icon={Landmark}
           label="Bank Accounts"
-          value="3"
+          value={bankAccounts.length.toString()}
           sublabel="Linked"
           sublabelTone="muted"
           tone="info"
@@ -158,7 +274,7 @@ export default function BankingScreen() {
         <StatCard
           icon={AlertTriangle}
           label="Unreconciled"
-          value="12"
+          value={unmatchedCount.toString()}
           sublabel="Need review"
           sublabelTone="muted"
           tone="warning"
@@ -166,7 +282,7 @@ export default function BankingScreen() {
         <StatCard
           icon={CircleCheck}
           label="Reconciled"
-          value="88%"
+          value={`${reconciledPct}%`}
           sublabel="This month"
           tone="success"
         />
@@ -177,7 +293,7 @@ export default function BankingScreen() {
         <button
           type="button"
           onClick={() => setAccount("All")}
-          className={`flex flex-col items-start gap-2 rounded-2xl border bg-surface p-5 text-left shadow-[var(--shadow-sm)] transition hover:shadow-[var(--shadow-md)] ${
+          className={`flex flex-col items-start gap-2 rounded-2xl border bg-surface p-5 text-left shadow-(--shadow-sm) transition hover:shadow-(--shadow-md) ${
             account === "All" ? "border-bronze ring-2 ring-bronze" : "border-line"
           }`}
         >
@@ -186,7 +302,7 @@ export default function BankingScreen() {
           </span>
           <p className="text-sm font-semibold text-fg">All accounts</p>
           <p className="text-xs text-muted">Combined view</p>
-          <p className="mt-auto pt-2 text-2xl font-bold text-fg">₹6,79,900</p>
+          <p className="mt-auto pt-2 text-2xl font-bold text-fg">{formatCurrency(totalBalance)}</p>
         </button>
 
         {bankAccounts.map((acc) => {
@@ -197,7 +313,7 @@ export default function BankingScreen() {
               key={acc.name}
               type="button"
               onClick={() => setAccount(acc.name)}
-              className={`flex flex-col items-start gap-2 rounded-2xl border bg-surface p-5 text-left shadow-[var(--shadow-sm)] transition hover:shadow-[var(--shadow-md)] ${
+              className={`flex flex-col items-start gap-2 rounded-2xl border bg-surface p-5 text-left shadow-(--shadow-sm) transition hover:shadow-(--shadow-md) ${
                 selected ? "border-bronze ring-2 ring-bronze" : "border-line"
               }`}
             >
@@ -346,7 +462,7 @@ export default function BankingScreen() {
                         <MenuItem
                           icon={Link2}
                           onClick={() => {
-                            update(txn, { status: "Matched" });
+                            void updateTransaction(txn, { status: "Matched" });
                             toast("Transaction matched.");
                           }}
                         >
@@ -364,7 +480,7 @@ export default function BankingScreen() {
                         <MenuItem
                           icon={Ban}
                           onClick={() => {
-                            update(txn, { status: "Excluded" });
+                            void updateTransaction(txn, { status: "Excluded" });
                             toast("Transaction excluded.");
                           }}
                         >
@@ -441,8 +557,9 @@ export default function BankingScreen() {
           setTxnOpen(false);
           setEditTxn(null);
         }}
-        onCreate={(txn) => add(txn)}
-        onUpdate={(item, patch) => update(item, patch)}
+        onCreate={(txn) => { void addTransaction(txn); }}
+        onUpdate={(item, patch) => { void updateTransaction(item, patch); }}
+        accounts={bankAccounts}
       />
 
       {/* Add Bank modal */}
@@ -462,14 +579,28 @@ export default function BankingScreen() {
           </>
         }
       >
-        <form id="add-bank-form" onSubmit={handleAddBank} className="space-y-4">
+        <form id="add-bank-form" onSubmit={addBankAccount} className="space-y-4">
           <div>
             <label htmlFor="bank-name" className="mb-1.5 block text-sm font-medium text-fg-soft">Bank Name</label>
-            <input id="bank-name" type="text" placeholder="e.g. HDFC Bank" className={fieldClass} />
+            <input
+              id="bank-name"
+              type="text"
+              value={bankDraft.name}
+              onChange={(e) => setBankDraft((current) => ({ ...current, name: e.target.value }))}
+              placeholder="e.g. HDFC Bank"
+              className={fieldClass}
+            />
           </div>
           <div>
             <label htmlFor="bank-account-no" className="mb-1.5 block text-sm font-medium text-fg-soft">Account Number</label>
-            <input id="bank-account-no" type="text" placeholder="e.g. ••1234" className={fieldClass} />
+            <input
+              id="bank-account-no"
+              type="text"
+              value={bankDraft.accountNo}
+              onChange={(e) => setBankDraft((current) => ({ ...current, accountNo: e.target.value }))}
+              placeholder="e.g. ••1234"
+              className={fieldClass}
+            />
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
@@ -480,19 +611,22 @@ export default function BankingScreen() {
                 id="bank-opening-balance"
                 type="text"
                 inputMode="decimal"
+                value={bankDraft.balance}
+                onChange={(e) => setBankDraft((current) => ({ ...current, balance: e.target.value }))}
                 placeholder="₹0.00"
                 className={fieldClass}
               />
             </div>
             <div>
               <label htmlFor="bank-ledger" className="mb-1.5 block text-sm font-medium text-fg-soft">Linked Ledger</label>
-              <select id="bank-ledger" defaultValue={bankAccounts[0].ledger} className={fieldClass}>
-                {bankAccounts.map((a) => (
-                  <option key={a.ledger} value={a.ledger}>
-                    {a.ledger}
-                  </option>
-                ))}
-              </select>
+              <input
+                id="bank-ledger"
+                type="text"
+                value={bankDraft.ledger}
+                onChange={(e) => setBankDraft((current) => ({ ...current, ledger: e.target.value }))}
+                placeholder="e.g. HDFC Bank A/c"
+                className={fieldClass}
+              />
             </div>
           </div>
         </form>
@@ -513,7 +647,9 @@ export default function BankingScreen() {
             <Button
               className="bg-danger text-white"
               onClick={() => {
-                if (deleteTxn) remove(deleteTxn);
+                if (deleteTxn) {
+                  void removeTransaction(deleteTxn);
+                }
                 setDeleteTxn(null);
               }}
             >

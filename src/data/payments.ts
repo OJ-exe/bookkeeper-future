@@ -21,4 +21,6 @@ export type Payment = {
   transactionId?: number | null;
 };
 
+export const payments: Payment[] = [];
+
 export const paymentTabs = ["All", "Received", "Made", "Pending", "Scheduled", "Failed"];

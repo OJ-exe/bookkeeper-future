@@ -12,16 +12,17 @@ function normalizeBankAccountPayload(input: BankAccountCreateInput | Record<stri
 }
 
 function normalizeBankTransactionPayload(input: BankTransactionCreateInput | Record<string, unknown>) {
+  const raw = input as Record<string, unknown>;
   return {
-    date: typeof input.date === "string" ? input.date : null,
-    description: typeof input.description === "string" ? input.description : "",
-    reference: typeof input.reference === "string" ? input.reference : null,
-    kind: typeof input.kind === "string" ? input.kind : "Inflow",
-    amount: typeof input.amount === "string" ? input.amount : "₹0",
-    account: typeof input.account === "string" ? input.account : null,
-    status: typeof input.status === "string" ? input.status : "Unmatched",
-    bankAccountId: typeof input.bankAccountId === "number" ? input.bankAccountId : null,
-    paymentId: typeof input.paymentId === "number" ? input.paymentId : null,
+    date: typeof raw.date === "string" ? raw.date : null,
+    description: typeof raw.description === "string" ? raw.description : "",
+    reference: typeof raw.reference === "string" ? raw.reference : null,
+    kind: typeof raw.kind === "string" ? raw.kind : "Inflow",
+    amount: typeof raw.amount === "string" ? raw.amount : "₹0",
+    account: typeof raw.account === "string" ? raw.account : null,
+    status: typeof raw.status === "string" ? raw.status : "Unmatched",
+    bankAccountId: typeof raw.bankAccountId === "number" ? raw.bankAccountId : null,
+    paymentId: typeof raw.paymentId === "number" ? raw.paymentId : null,
   };
 }
 

@@ -13,20 +13,20 @@ function formatAmount(value: number) {
 }
 
 function normalizePaymentPayload(input: PaymentCreateInput | Record<string, unknown>) {
+  const raw = input as Record<string, unknown>;
   return {
-    date: typeof input.date === "string" ? input.date : null,
-    party: typeof input.party === "string" ? input.party : "",
-    direction: typeof input.direction === "string" ? input.direction : "Received",
-    method: typeof input.method === "string" ? input.method : "Bank Transfer",
-    reference: typeof input.reference === "string" ? input.reference : null,
-    status: typeof input.status === "string" ? input.status : "Pending",
-    amount: typeof input.amount === "string" ? input.amount : "₹0",
-    customerId: typeof input.customerId === "number" ? input.customerId : null,
-    vendorId: typeof input.vendorId === "number" ? input.vendorId : null,
-    invoiceId: typeof input.invoiceId === "number" ? input.invoiceId : null,
-    billId: typeof input.billId === "number" ? input.billId : null,
-    bankAccountId: typeof input.bankAccountId === "number" ? input.bankAccountId : null,
-    transactionId: typeof input.transactionId === "number" ? input.transactionId : null,
+    date: typeof raw.date === "string" ? raw.date : null,
+    party: typeof raw.party === "string" ? raw.party : "",
+    direction: typeof raw.direction === "string" ? raw.direction : "Received",
+    method: typeof raw.method === "string" ? raw.method : "Bank Transfer",
+    reference: typeof raw.reference === "string" ? raw.reference : null,
+    status: typeof raw.status === "string" ? raw.status : "Pending",
+    amount: typeof raw.amount === "string" ? raw.amount : "₹0",
+    customerId: typeof raw.customerId === "number" ? raw.customerId : null,
+    vendorId: typeof raw.vendorId === "number" ? raw.vendorId : null,
+    invoiceId: typeof raw.invoiceId === "number" ? raw.invoiceId : null,
+    billId: typeof raw.billId === "number" ? raw.billId : null,
+    bankAccountId: typeof raw.bankAccountId === "number" ? raw.bankAccountId : null,
   };
 }
 

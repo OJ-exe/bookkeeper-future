@@ -1,5 +1,7 @@
 "use client";
 
+"use client";
+
 import {
   LineChart,
   Line,
@@ -13,8 +15,9 @@ import {
 import Card from "@/components/ui/Card";
 import CardSelect from "@/components/ui/CardSelect";
 import { useChartColors } from "@/lib/useChartColors";
+import { useDashboardAnalytics } from "@/lib/useDashboardAnalytics";
 
-const data = [
+const fallbackData = [
   { month: "Jan", inflow: 42000, outflow: 28000, net: 14000 },
   { month: "Feb", inflow: 38000, outflow: 31000, net: 7000 },
   { month: "Mar", inflow: 51000, outflow: 34000, net: 17000 },
@@ -24,7 +27,9 @@ const data = [
 ];
 
 export default function CashFlowChart() {
+  const { data } = useDashboardAnalytics();
   const c = useChartColors();
+  const chartData = data?.cashflow?.length ? data.cashflow : fallbackData;
 
   return (
     <Card className="h-full flex flex-col">
@@ -38,7 +43,7 @@ export default function CashFlowChart() {
 
       <div className="flex-1 min-h-72">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={data} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
+          <LineChart data={chartData} margin={{ top: 8, right: 8, left: -8, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke={c.grid} />
             <XAxis
               dataKey="month"

@@ -96,7 +96,6 @@ export default function RecordPaymentModal({
       return;
     }
     onCreate({
-      id: `PMT-2026-${Math.floor(100 + Math.random() * 900)}`,
       date: formatDate(date),
       party,
       direction,

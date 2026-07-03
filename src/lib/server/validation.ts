@@ -68,6 +68,60 @@ export const paymentCreateSchema = z.object({
 
 export const paymentUpdateSchema = paymentCreateSchema.partial();
 
+export const accountCreateSchema = z.object({
+  code: z.string().trim().min(1, "Account code is required."),
+  name: z.string().trim().min(1, "Account name is required."),
+  type: z.enum(["Asset", "Liability", "Income", "Expense"]).optional().default("Asset"),
+  subtype: z.string().trim().optional(),
+  balance: z.string().trim().optional(),
+  linked: z.number().int().nonnegative().optional(),
+  note: z.string().trim().optional(),
+});
+
+export const accountUpdateSchema = accountCreateSchema.partial();
+
+export const employeeCreateSchema = z.object({
+  code: z.string().trim().min(1, "Employee code is required."),
+  name: z.string().trim().min(1, "Employee name is required."),
+  initials: z.string().trim().optional(),
+  department: z.enum(["Sales", "Finance", "Operations", "HR", "Engineering"]).optional().default("Sales"),
+  designation: z.string().trim().optional(),
+  email: z.string().trim().optional(),
+  phone: z.string().trim().optional(),
+  ctc: z.string().trim().optional(),
+  status: z.enum(["Active", "On Leave", "Inactive"]).optional().default("Active"),
+  joinedNew: z.boolean().optional().default(false),
+});
+
+export const employeeUpdateSchema = employeeCreateSchema.partial();
+
+export const orderCreateSchema = z.object({
+  number: z.string().trim().min(1, "Order number is required."),
+  date: z.string().trim().optional(),
+  expectedDate: z.string().trim().optional(),
+  party: z.string().trim().min(1, "Party is required."),
+  kind: z.enum(["Sales Order", "Purchase Order"]).optional().default("Sales Order"),
+  status: z.enum(["Open", "Partially Fulfilled", "Fulfilled", "Cancelled", "Draft"]).optional().default("Open"),
+  total: z.string().trim().optional(),
+  fulfilled: z.string().trim().optional(),
+  value: z.string().trim().optional(),
+});
+
+export const orderUpdateSchema = orderCreateSchema.partial();
+
+export const payrollCreateSchema = z.object({
+  id: z.string().trim().min(1, "Payroll run id is required."),
+  period: z.string().trim().min(1, "Payroll period is required."),
+  employees: z.number().int().nonnegative().optional(),
+  gross: z.string().trim().optional(),
+  deductions: z.string().trim().optional(),
+  netPay: z.string().trim().optional(),
+  status: z.enum(["Paid", "Processing", "Pending", "Draft"]).optional().default("Pending"),
+  payDate: z.string().trim().optional(),
+});
+
+export const payrollUpdateSchema = payrollCreateSchema.partial();
+
 export const bankAccountCreateSchema = z.object({
   name: z.string().trim().min(1, "Bank account name is required."),
   bankName: z.string().trim().optional(),

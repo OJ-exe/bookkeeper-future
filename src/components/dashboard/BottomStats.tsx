@@ -1,3 +1,5 @@
+"use client";
+
 import {
   Wallet,
   Landmark,
@@ -8,6 +10,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import Card from "@/components/ui/Card";
+import { useDashboardAnalytics } from "@/lib/useDashboardAnalytics";
 
 type Stat = {
   icon: LucideIcon;
@@ -16,14 +19,15 @@ type Stat = {
   note: string;
 };
 
-const stats: Stat[] = [
-  { icon: Wallet, label: "Cash Position", value: "₹0.00", note: "as of today" },
-  { icon: Landmark, label: "Bank Balance", value: "₹0.00", note: "in 1 account" },
-  { icon: ReceiptText, label: "GST Payable", value: "₹0.00", note: "No action required" },
-  { icon: FileText, label: "TDS Payable", value: "₹0.00", note: "No action required" },
-];
-
 export default function BottomStats() {
+  const { data } = useDashboardAnalytics();
+  const stats: Stat[] = [
+    { icon: Wallet, label: "Cash Position", value: data?.metrics?.[0]?.value ?? "₹0.00", note: "as of today" },
+    { icon: Landmark, label: "Bank Balance", value: data?.bankingSummary ? `₹${data.bankingSummary.balance.toLocaleString("en-IN")}` : "₹0.00", note: `${data?.bankingSummary?.accounts ?? 0} account(s)` },
+    { icon: ReceiptText, label: "GST Payable", value: data?.taxSummary ? `₹${Math.round(data.taxSummary.net).toLocaleString("en-IN")}` : "₹0.00", note: data?.taxSummary ? `${data.taxSummary.pending} pending` : "No action required" },
+    { icon: FileText, label: "TDS Payable", value: "₹0.00", note: "No action required" },
+  ];
+
   return (
     <Card>
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
@@ -49,11 +53,8 @@ export default function BottomStats() {
           </span>
           <div className="min-w-0">
             <p className="text-xs text-muted">Last Updated</p>
-            <p className="text-sm font-semibold text-fg">2 mins ago</p>
-            <button
-              type="button"
-              className="mt-0.5 inline-flex items-center gap-1 text-xs font-medium text-bronze hover:underline"
-            >
+            <p className="text-sm font-semibold text-fg">Just now</p>
+            <button type="button" className="mt-0.5 inline-flex items-center gap-1 text-xs font-medium text-bronze hover:underline">
               <RefreshCw size={12} aria-hidden="true" />
               Refresh
             </button>

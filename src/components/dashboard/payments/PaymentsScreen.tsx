@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Search,
   Filter,
@@ -60,7 +60,7 @@ function buildImportedPayment(row: Record<string, string>): Payment | null {
   const rawStatus = (row["Status"] ?? "").trim() as PaymentStatus;
   const status: PaymentStatus = paymentStatuses.includes(rawStatus) ? rawStatus : "Pending";
   return {
-    id,
+    id: Number.isNaN(Number(id)) ? undefined : Number(id),
     date: row["Date"]?.trim() || "—",
     party: party || "—",
     direction,
@@ -129,7 +129,7 @@ export default function PaymentsScreen() {
       const data = (await response.json()) as Payment[];
       setPayments(data);
     } catch {
-      toast("Unable to load payments right now.", "error");
+      toast("Unable to load payments right now.", "danger");
     }
   }
 
@@ -182,7 +182,7 @@ export default function PaymentsScreen() {
   const filtered = payments.filter((payment) => {
     const matchesQuery =
       !q ||
-      payment.id.toLowerCase().includes(q) ||
+      String(payment.id ?? "").toLowerCase().includes(q) ||
       payment.party.toLowerCase().includes(q) ||
       payment.method.toLowerCase().includes(q) ||
       payment.reference.toLowerCase().includes(q) ||
@@ -224,7 +224,11 @@ export default function PaymentsScreen() {
             <UploadButton<Payment>
               label="Import"
               build={buildImportedPayment}
-              onImport={(records) => setItems([...records, ...payments])}
+              onImport={async (records) => {
+                for (const record of records.filter(Boolean)) {
+                  await addPayment(record);
+                }
+              }}
             />
             <Button variant="bronze" size="sm" onClick={() => setCreateOpen(true)}>
               <Plus size={16} /> Record Payment
@@ -503,7 +507,7 @@ export default function PaymentsScreen() {
       <DetailModal
         open={viewTarget !== null}
         onClose={() => setViewTarget(null)}
-        title={viewTarget?.id ?? "Payment"}
+        title={viewTarget?.id ? String(viewTarget.id) : "Payment"}
         description="Payment details"
         rows={
           viewTarget
@@ -528,8 +532,12 @@ export default function PaymentsScreen() {
           setCreateOpen(false);
           setEditTarget(null);
         }}
-        onCreate={(payment) => add(payment)}
-        onUpdate={(item, patch) => update(item, patch)}
+        onCreate={(payment) => {
+          void addPayment(payment);
+        }}
+        onUpdate={(item, patch) => {
+          void updatePayment(item, patch);
+        }}
       />
 
       <Modal
@@ -546,10 +554,12 @@ export default function PaymentsScreen() {
             <button
               type="button"
               onClick={() => {
-                if (deleteTarget) remove(deleteTarget);
+                if (deleteTarget) {
+                  void removePayment(deleteTarget);
+                }
                 setDeleteTarget(null);
               }}
-              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-danger px-5 text-sm font-medium text-white shadow-[var(--shadow-xs)] transition hover:opacity-90"
+              className="inline-flex h-11 items-center justify-center gap-2 rounded-xl bg-danger px-5 text-sm font-medium text-white shadow-(--shadow-xs) transition hover:opacity-90"
             >
               Delete
             </button>

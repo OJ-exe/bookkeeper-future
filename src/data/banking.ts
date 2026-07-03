@@ -1,7 +1,5 @@
 export type TxnStatus = "Matched" | "Unmatched" | "Excluded";
 
-export type TxnStatus = "Matched" | "Unmatched" | "Excluded";
-
 export type BankTxn = {
   id?: number;
   date: string;
@@ -23,6 +21,35 @@ export type BankAccount = {
   balance: string;
   ledger: string;
 };
+
+export const bankAccounts: BankAccount[] = [
+  {
+    id: 1,
+    name: "HDFC Current",
+    bankName: "HDFC Bank",
+    accountNo: "••1234",
+    balance: "₹4,12,000",
+    ledger: "HDFC Bank A/c",
+  },
+  {
+    id: 2,
+    name: "ICICI Savings",
+    bankName: "ICICI Bank",
+    accountNo: "••8842",
+    balance: "₹1,82,500",
+    ledger: "ICICI Bank A/c",
+  },
+  {
+    id: 3,
+    name: "Cash in Hand",
+    bankName: "Cash",
+    accountNo: "••0000",
+    balance: "₹85,400",
+    ledger: "Cash A/c",
+  },
+];
+
+export const bankTxns: BankTxn[] = [];
 
 export const bankTxnTabs = [
   "All Transactions",

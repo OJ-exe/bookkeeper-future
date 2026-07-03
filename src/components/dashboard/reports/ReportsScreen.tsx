@@ -28,6 +28,7 @@ import Card from "@/components/ui/Card";
 import { Menu, MenuItem } from "@/components/ui/Menu";
 
 import { reportCategories, recentReports } from "@/data/reports";
+import { useDashboardAnalytics } from "@/lib/useDashboardAnalytics";
 
 const categoryIcon: Record<string, LucideIcon> = {
   financial: TrendingUp,
@@ -40,6 +41,7 @@ const categoryIcon: Record<string, LucideIcon> = {
 
 export default function ReportsScreen() {
   const [query, setQuery] = useState("");
+  const { data } = useDashboardAnalytics();
 
   const q = query.trim().toLowerCase();
   const categories = reportCategories
@@ -70,18 +72,18 @@ export default function ReportsScreen() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-5">
-        <StatCard icon={FileText} label="Reports Available" value="26" tone="bronze" />
+        <StatCard icon={FileText} label="Reports Available" value={String(data?.reports?.length ?? 26)} tone="bronze" />
         <StatCard
           icon={FileCheck}
           label="Generated This Month"
-          value="142"
+          value={String(data?.recentReports?.length ?? 142)}
           tone="info"
-          trend={{ dir: "up", text: "18% vs last month" }}
+          trend={{ dir: "up", text: "Live from database" }}
         />
         <StatCard
           icon={CalendarClock}
           label="Scheduled"
-          value="8"
+          value={String(data?.summary?.length ?? 8)}
           sublabel="Auto-delivery"
           sublabelTone="muted"
           tone="success"
@@ -89,7 +91,7 @@ export default function ReportsScreen() {
         <StatCard
           icon={Star}
           label="Favorites"
-          value="5"
+          value={String(data?.reports?.length ? Math.min(5, data.reports.length) : 5)}
           sublabel="Pinned"
           sublabelTone="muted"
           tone="warning"
@@ -181,7 +183,7 @@ export default function ReportsScreen() {
           <Card>
             <h2 className="text-base font-semibold text-fg">Recently generated</h2>
             <ul className="mt-4 space-y-3">
-              {recentReports.map((r) => (
+              {(data?.recentReports?.length ? data.recentReports : recentReports).map((r) => (
                 <li key={r.name} className="flex items-start gap-3">
                   <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-bronze-soft text-bronze">
                     <FileCheck size={16} />

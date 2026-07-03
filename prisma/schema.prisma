@@ -29,6 +29,63 @@ model Customer {
   payments        Payment[]
 }
 
+model Account {
+  id        Int      @id @default(autoincrement())
+  code      String   @unique
+  name      String
+  type      String   @default("Asset")
+  subtype   String?  @default("Current Assets")
+  balance   String?  @default("₹0.00")
+  linked    Int?     @default(0)
+  note      String?  @default("Default account")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Employee {
+  id           Int      @id @default(autoincrement())
+  code         String   @unique
+  name         String
+  initials     String?
+  department   String   @default("Sales")
+  designation  String?
+  email        String?
+  phone        String?
+  ctc          String?  @default("₹0")
+  status       String   @default("Active")
+  joinedNew    Boolean  @default(false)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Order {
+  id           Int      @id @default(autoincrement())
+  number       String   @unique
+  date         String?
+  expectedDate String?
+  party        String
+  kind         String   @default("Sales Order")
+  status       String   @default("Open")
+  total        String?  @default("₹0")
+  fulfilled    String?  @default("0%")
+  value        String?  @default("₹0")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model PayrollRun {
+  id         String   @id
+  period     String
+  employees  Int      @default(0)
+  gross      String?  @default("₹0")
+  deductions String?  @default("₹0")
+  netPay     String?  @default("₹0")
+  status     String   @default("Pending")
+  payDate    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
 model Vendor {
   id              Int      @id @default(autoincrement())
   name            String
@@ -102,14 +159,12 @@ model Payment {
   invoiceId       Int?
   billId          Int?
   bankAccountId   Int?
-  transactionId   Int?
   customer        Customer? @relation(fields: [customerId], references: [id])
   vendor          Vendor?  @relation(fields: [vendorId], references: [id])
   invoice         Invoice? @relation(fields: [invoiceId], references: [id])
   bill            Bill?    @relation(fields: [billId], references: [id])
   bankAccount     BankAccount? @relation(fields: [bankAccountId], references: [id])
-  transaction     BankTransaction? @relation("PaymentTransactionB", fields: [transactionId], references: [id])
-  transactionRecord BankTransaction? @relation("PaymentTransactionA", fields: [transactionId], references: [id])
+  transactions    BankTransaction[]
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
 }
@@ -139,8 +194,7 @@ model BankTransaction {
   bankAccountId   Int?
   paymentId       Int?
   bankAccount     BankAccount? @relation(fields: [bankAccountId], references: [id])
-  payment         Payment? @relation("PaymentTransactionA", fields: [paymentId], references: [id])
+  payment         Payment? @relation(fields: [paymentId], references: [id])
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
-  paymentRelation Payment[] @relation("PaymentTransactionB")
 }

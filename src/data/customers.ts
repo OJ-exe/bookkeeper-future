@@ -1,6 +1,7 @@
 export type CustomerStatus = "Active" | "Inactive" | "Overdue";
 
 export type Customer = {
+  id?: number;
   name: string;
   initials: string;
   vip: boolean;

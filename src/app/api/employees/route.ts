@@ -1,9 +1,14 @@
 import { createEmployee, listEmployees } from "@/lib/server/employeeService";
-import { badRequest, created, ok, serverError } from "@/lib/server/response";
+import { badRequest, created, ok, serverError, unauthorized } from "@/lib/server/response";
+import { getUserFromRequest } from "@/lib/server/sessionService";
 import { employeeCreateSchema, parseValidation } from "@/lib/server/validation";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const user = await getUserFromRequest(request);
+    if (!user) {
+      return unauthorized("Authentication required.");
+    }
     const employees = await listEmployees();
     return ok(employees);
   } catch (error) {
@@ -14,6 +19,10 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const user = await getUserFromRequest(request);
+    if (!user) {
+      return unauthorized("Authentication required.");
+    }
     const body = await request.json();
     const parsed = parseValidation(employeeCreateSchema, body);
 

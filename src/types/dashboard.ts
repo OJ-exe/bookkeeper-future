@@ -57,6 +57,7 @@ export interface DashboardTaxSummary {
 export interface DashboardSetupTask {
   name: string;
   status: "Completed" | "In Progress" | "Pending";
+  icon: "Building2" | "Receipt" | "Landmark" | "Users" | "Truck" | "UserCog" | "FileText" | "BarChart3";
 }
 
 export interface DashboardFocusTask {

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Search,
   Filter,
@@ -38,7 +38,6 @@ import {
   type EmployeeStatus,
   type Department,
 } from "@/data/employees";
-import { useCollection } from "@/lib/store/dataStore";
 import { downloadCsvTemplate } from "@/lib/exportCsv";
 import UploadButton from "@/components/ui/UploadButton";
 import DetailModal from "@/components/ui/DetailModal";
@@ -101,17 +100,102 @@ function tabPredicate(tab: string, e: Employee): boolean {
 
 const departmentOptions = ["All Departments", ...departments];
 
+type ApiEmployee = Employee & { id: number };
+
 export default function EmployeesScreen() {
-  const { items: employees, add, update, setItems } = useCollection<Employee>("employees");
+  const [employees, setEmployees] = useState<ApiEmployee[]>([]);
   const toast = useToast();
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [tab, setTab] = useState("All Employees");
   const [department, setDepartment] = useState("All Departments");
   const [addOpen, setAddOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<Employee | null>(null);
-  const [viewTarget, setViewTarget] = useState<Employee | null>(null);
-  const [deactivateTarget, setDeactivateTarget] = useState<Employee | null>(null);
+  const [editTarget, setEditTarget] = useState<ApiEmployee | null>(null);
+  const [viewTarget, setViewTarget] = useState<ApiEmployee | null>(null);
+  const [deactivateTarget, setDeactivateTarget] = useState<ApiEmployee | null>(null);
+
+  useEffect(() => {
+    async function loadEmployees() {
+      try {
+        const response = await fetch("/api/employees");
+        if (!response.ok) {
+          throw new Error("Failed to load employees");
+        }
+        const data = (await response.json()) as ApiEmployee[];
+        setEmployees(data);
+      } catch {
+        setEmployees([]);
+      }
+    }
+
+    void loadEmployees();
+  }, []);
+
+  async function addEmployee(employee: Employee) {
+    try {
+      const response = await fetch("/api/employees", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(employee),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to create employee");
+      }
+
+      const created = (await response.json()) as ApiEmployee;
+      setEmployees((current) => [created, ...current]);
+      toast("Employee created successfully.");
+    } catch {
+      toast("Unable to create employee right now.");
+    }
+  }
+
+  async function updateEmployee(item: ApiEmployee, patch: Partial<ApiEmployee>) {
+    if (!item.id) {
+      setEmployees((current) => current.map((entry) => (entry === item ? { ...entry, ...patch } : entry)));
+      toast("Employee updated.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/employees/${item.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...item, ...patch }),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update employee");
+      }
+
+      const updated = (await response.json()) as ApiEmployee;
+      setEmployees((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)));
+      toast("Employee updated.");
+    } catch {
+      toast("Unable to update employee right now.");
+    }
+  }
+
+  async function removeEmployee(item: ApiEmployee) {
+    if (!item.id) {
+      setEmployees((current) => current.filter((entry) => entry !== item));
+      toast("Employee removed.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/employees/${item.id}`, { method: "DELETE" });
+      if (!response.ok) {
+        throw new Error("Failed to delete employee");
+      }
+
+      setEmployees((current) => current.filter((entry) => entry.id !== item.id));
+      toast("Employee removed.");
+    } catch {
+      toast("Unable to delete employee right now.");
+    }
+  }
 
   const q = query.trim().toLowerCase();
   const filtered = employees.filter((e) => {
@@ -149,7 +233,7 @@ export default function EmployeesScreen() {
             <UploadButton<Employee>
               label="Upload CSV"
               build={buildImportedEmployee}
-              onImport={(records) => setItems([...records, ...employees])}
+              onImport={(records) => setEmployees([...records, ...employees])}
             />
             <Button variant="bronze" size="sm" onClick={() => setAddOpen(true)}>
               <Plus size={16} /> Add Employee
@@ -389,13 +473,13 @@ export default function EmployeesScreen() {
       <AddEmployeeModal
         key={editTarget ? `edit-${editTarget.code}` : "create"}
         open={addOpen || editTarget !== null}
-        editing={editTarget}
+        editing={editTarget ?? undefined}
         onClose={() => {
           setAddOpen(false);
           setEditTarget(null);
         }}
-        onCreate={(employee) => add(employee)}
-        onUpdate={(item, patch) => update(item, patch)}
+        onCreate={(employee) => void addEmployee(employee)}
+        onUpdate={(item, patch) => void updateEmployee(item, patch)}
       />
 
       <Modal
@@ -413,8 +497,7 @@ export default function EmployeesScreen() {
               type="button"
               onClick={() => {
                 if (deactivateTarget) {
-                  update(deactivateTarget, { status: "Inactive" });
-                  toast(`${deactivateTarget.name} deactivated.`);
+                  void updateEmployee(deactivateTarget, { status: "Inactive" });
                 }
                 setDeactivateTarget(null);
               }}

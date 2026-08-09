@@ -1,9 +1,14 @@
 import { createPayrollRun, listPayrollRuns } from "@/lib/server/payrollService";
-import { badRequest, created, ok, serverError } from "@/lib/server/response";
+import { badRequest, created, ok, serverError, unauthorized } from "@/lib/server/response";
+import { getUserFromRequest } from "@/lib/server/sessionService";
 import { payrollCreateSchema, parseValidation } from "@/lib/server/validation";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
+    const user = await getUserFromRequest(request);
+    if (!user) {
+      return unauthorized("Authentication required.");
+    }
     const payrollRuns = await listPayrollRuns();
     return ok(payrollRuns);
   } catch (error) {
@@ -14,6 +19,10 @@ export async function GET() {
 
 export async function POST(request: Request) {
   try {
+    const user = await getUserFromRequest(request);
+    if (!user) {
+      return unauthorized("Authentication required.");
+    }
     const body = await request.json();
     const parsed = parseValidation(payrollCreateSchema, body);
 

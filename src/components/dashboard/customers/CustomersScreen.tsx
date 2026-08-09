@@ -213,6 +213,7 @@ type ApiCustomer = {
 
 function mapApiCustomer(customer: ApiCustomer): Customer {
   return {
+    id: customer.id,
     name: customer.name,
     initials: customer.initials || customer.name.slice(0, 2).toUpperCase(),
     vip: customer.vip,
@@ -262,6 +263,7 @@ export default function CustomersScreen() {
       const response = await fetch("/api/customers", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify(customer),
       });
 
@@ -279,13 +281,55 @@ export default function CustomersScreen() {
 
   async function updateCustomer(item: Customer, patch: Partial<Customer>) {
     const updated = { ...item, ...patch };
-    setCustomers((current) => current.map((entry) => (entry.name === item.name ? updated : entry)));
-    toast("Customer updated.");
+
+    if (!item.id) {
+      setCustomers((current) => current.map((entry) => (entry.name === item.name ? updated : entry)));
+      toast("Customer updated.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/customers/${item.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify(patch),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to update customer");
+      }
+
+      const data = (await response.json()) as ApiCustomer;
+      setCustomers((current) => current.map((entry) => (entry.id === item.id ? mapApiCustomer(data) : entry)));
+      toast("Customer updated successfully.");
+    } catch {
+      toast("Unable to update customer right now.");
+    }
   }
 
-  function removeCustomer(item: Customer) {
-    setCustomers((current) => current.filter((entry) => entry.name !== item.name));
-    toast("Customer removed from the current view.");
+  async function removeCustomer(item: Customer) {
+    if (!item.id) {
+      setCustomers((current) => current.filter((entry) => entry.name !== item.name));
+      toast("Customer removed from the current view.");
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/customers/${item.id}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+
+      if (!response.ok && response.status !== 204) {
+        throw new Error("Failed to delete customer");
+      }
+
+      setCustomers((current) => current.filter((entry) => entry.id !== item.id));
+      toast("Customer deleted successfully.");
+    } catch {
+      toast("Unable to delete customer right now.");
+    }
   }
 
   const q = query.trim().toLowerCase();

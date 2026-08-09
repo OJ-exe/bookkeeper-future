@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Check } from "lucide-react";
 import { countries, currencies, indianStates } from "@/data/locationData";
@@ -18,8 +19,42 @@ const inputCls =
 const labelCls = "mb-1.5 block text-sm font-medium text-fg-soft";
 
 export default function SignupPage() {
+  const router = useRouter();
   const [hasPan, setHasPan] = useState(false);
   const [hasGstin, setHasGstin] = useState(false);
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [company, setCompany] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    try {
+      const response = await fetch("/api/auth/signup", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ name, email, password, company }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        setError(data?.error || "Unable to create account.");
+        return;
+      }
+
+      router.push("/dashboard");
+    } catch (error) {
+      setError("Unable to create account.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <main className="grid min-h-screen lg:grid-cols-2 bg-canvas">
@@ -92,25 +127,51 @@ export default function SignupPage() {
             Start a free trial without payment details, or subscribe immediately.
           </p>
 
-          <form className="mt-8 space-y-5" onSubmit={(e) => e.preventDefault()}>
+          <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
             <div>
               <label htmlFor="fullName" className={labelCls}>Full Name</label>
-              <input id="fullName" placeholder="Your name" className={inputCls} />
+              <input
+                id="fullName"
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                placeholder="Your name"
+                className={inputCls}
+              />
             </div>
 
             <div>
               <label htmlFor="email" className={labelCls}>Email</label>
-              <input id="email" type="email" placeholder="you@company.com" className={inputCls} />
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="you@company.com"
+                className={inputCls}
+              />
             </div>
 
             <div>
               <label htmlFor="password" className={labelCls}>Password</label>
-              <input id="password" type="password" placeholder="Create password" className={inputCls} />
+              <input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(event) => setPassword(event.target.value)}
+                placeholder="Create password"
+                className={inputCls}
+              />
             </div>
 
             <div>
               <label htmlFor="company" className={labelCls}>Company Name</label>
-              <input id="company" placeholder="Company name" className={inputCls} />
+              <input
+                id="company"
+                value={company}
+                onChange={(event) => setCompany(event.target.value)}
+                placeholder="Company name"
+                className={inputCls}
+              />
             </div>
 
             <div>

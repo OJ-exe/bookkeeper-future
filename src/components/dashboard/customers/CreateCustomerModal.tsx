@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 
 import Modal from "@/components/ui/Modal";
 import Button from "@/components/ui/Button";
@@ -42,6 +42,19 @@ export default function CreateCustomerModal({
   const [email, setEmail] = useState(unblank(editing?.email));
   const [phone, setPhone] = useState(unblank(editing?.phone));
   const [city, setCity] = useState(unblank(editing?.city));
+
+  useEffect(() => {
+    if (editing) {
+      setName(editing.name);
+      setGstin(unblank(editing.gstin));
+      setContactName(unblank(editing.contactName));
+      setEmail(unblank(editing.email));
+      setPhone(unblank(editing.phone));
+      setCity(unblank(editing.city));
+    } else {
+      reset();
+    }
+  }, [editing]);
 
   function reset() {
     setName("");

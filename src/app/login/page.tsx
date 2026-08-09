@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { FormEvent, useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Check, Eye, EyeOff } from "lucide-react";
 import ThemeToggle from "@/components/theme/ThemeToggle";
@@ -17,7 +18,39 @@ const inputCls =
 const labelCls = "mb-1.5 block text-sm font-medium text-fg-soft";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [showPw, setShowPw] = useState(false);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setError(null);
+    setLoading(true);
+
+    try {
+      const response = await fetch("/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+      if (!response.ok) {
+        setError(data?.error || "Unable to sign in.");
+        return;
+      }
+
+      router.push("/dashboard");
+    } catch (error) {
+      setError("Unable to sign in.");
+    } finally {
+      setLoading(false);
+    }
+  }
 
   return (
     <main className="grid min-h-screen lg:grid-cols-2 bg-canvas">
@@ -88,15 +121,19 @@ export default function LoginPage() {
           <h2 className="text-2xl font-bold text-fg">Welcome back</h2>
           <p className="mt-1 text-sm text-muted">Log in to your workspace.</p>
 
-          <form
-            className="mt-8 space-y-5"
-            onSubmit={(e) => e.preventDefault()}
-          >
+          <form className="mt-8 space-y-5" onSubmit={handleSubmit}>
             <div>
               <label htmlFor="email" className={labelCls}>
                 Email
               </label>
-              <input id="email" type="email" placeholder="you@company.com" className={inputCls} />
+              <input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(event) => setEmail(event.target.value)}
+                placeholder="you@company.com"
+                className={inputCls}
+              />
             </div>
 
             <div>
@@ -107,6 +144,8 @@ export default function LoginPage() {
                 <input
                   id="password"
                   type={showPw ? "text" : "password"}
+                  value={password}
+                  onChange={(event) => setPassword(event.target.value)}
                   placeholder="Enter your password"
                   className={`${inputCls} pr-10`}
                 />
@@ -120,6 +159,8 @@ export default function LoginPage() {
                 </button>
               </div>
             </div>
+
+            {error ? <p className="text-sm text-danger">{error}</p> : null}
 
             <div className="flex items-center justify-between text-sm">
               <label className="flex items-center gap-2 text-fg-soft">
@@ -135,8 +176,8 @@ export default function LoginPage() {
               </Link>
             </div>
 
-            <Button type="submit" variant="bronze" className="w-full">
-              Sign In
+            <Button type="submit" variant="bronze" className="w-full" disabled={loading}>
+              {loading ? "Signing in..." : "Sign In"}
             </Button>
 
             <div className="flex items-center gap-3">

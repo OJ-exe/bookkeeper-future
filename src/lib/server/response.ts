@@ -21,6 +21,10 @@ export function notFound(error: string) {
   return NextResponse.json({ error }, { status: 404 });
 }
 
+export function unauthorized(error: string) {
+  return NextResponse.json({ error }, { status: 401 });
+}
+
 export function serverError(error: string) {
   return NextResponse.json({ error }, { status: 500 });
 }

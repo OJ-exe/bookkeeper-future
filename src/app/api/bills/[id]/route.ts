@@ -1,8 +1,13 @@
 import { deleteBill, getBill, updateBill } from "@/lib/server/billService";
-import { badRequest, notFound, ok, serverError } from "@/lib/server/response";
+import { badRequest, notFound, ok, serverError, unauthorized } from "@/lib/server/response";
+import { getUserFromRequest } from "@/lib/server/sessionService";
 import { billUpdateSchema, parseValidation } from "@/lib/server/validation";
 
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const user = await getUserFromRequest(request);
+  if (!user) {
+    return unauthorized("Authentication required.");
+  }
   try {
     const { id } = await params;
     const billId = Number(id);
@@ -24,6 +29,10 @@ export async function GET(_request: Request, { params }: { params: Promise<{ id:
 }
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const user = await getUserFromRequest(request);
+  if (!user) {
+    return unauthorized("Authentication required.");
+  }
   try {
     const { id } = await params;
     const billId = Number(id);
@@ -51,7 +60,11 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
   }
 }
 
-export async function DELETE(_request: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(request: Request, { params }: { params: Promise<{ id: string }> }) {
+  const user = await getUserFromRequest(request);
+  if (!user) {
+    return unauthorized("Authentication required.");
+  }
   try {
     const { id } = await params;
     const billId = Number(id);

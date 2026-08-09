@@ -19,6 +19,37 @@ export const vendorCreateSchema = z.object({
 
 export const vendorUpdateSchema = vendorCreateSchema.partial();
 
+export const customerCreateSchema = z.object({
+  name: z.string().trim().min(1, "Customer name is required."),
+  initials: z.string().trim().optional(),
+  vip: z.boolean().optional().default(false),
+  gstin: z.string().trim().optional().nullable(),
+  city: z.string().trim().optional().nullable(),
+  contactName: z.string().trim().optional().nullable(),
+  email: z.string().email("Please provide a valid email.").optional().nullable(),
+  phone: z.string().trim().optional().nullable(),
+  revenue: z.string().trim().optional(),
+  revenuePct: z.string().trim().optional(),
+  outstanding: z.string().trim().optional(),
+  outstandingNote: z.string().trim().optional(),
+  status: z.enum(["Active", "Inactive", "Overdue"]).optional().default("Active"),
+  isNew: z.boolean().optional().default(true),
+});
+
+export const customerUpdateSchema = customerCreateSchema.partial();
+
+export const authSignupSchema = z.object({
+  name: z.string().trim().min(1, "Full name is required."),
+  email: z.string().email("Please provide a valid email."),
+  password: z.string().min(8, "Password must be at least 8 characters."),
+  company: z.string().trim().optional().nullable(),
+});
+
+export const authLoginSchema = z.object({
+  email: z.string().email("Please provide a valid email."),
+  password: z.string().min(1, "Password is required."),
+});
+
 export const invoiceCreateSchema = z.object({
   number: z.string().trim().min(1, "Invoice number is required.").optional(),
   date: z.string().trim().optional(),

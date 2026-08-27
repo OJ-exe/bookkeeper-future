@@ -1,5 +1,5 @@
-import { createEmployee, listEmployees } from "@/lib/server/employeeService";
-import { badRequest, created, ok, serverError, unauthorized } from "@/lib/server/response";
+import { createEmployee, getEmployees } from "@/lib/server/employeeService";
+import { badRequest, created, ok, serverError, unauthorized, conflict, isUniqueConstraintError } from "@/lib/server/response";
 import { getUserFromRequest } from "@/lib/server/sessionService";
 import { employeeCreateSchema, parseValidation } from "@/lib/server/validation";
 
@@ -9,7 +9,7 @@ export async function GET(request: Request) {
     if (!user) {
       return unauthorized("Authentication required.");
     }
-    const employees = await listEmployees(user.id);
+    const employees = await getEmployees(user.id);
     return ok(employees);
   } catch (error) {
     console.error("Failed to list employees", error);
@@ -33,6 +33,9 @@ export async function POST(request: Request) {
     const employee = await createEmployee(user.id, parsed.data);
     return created(employee);
   } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      return conflict("A employee with this code already exists.");
+    }
     console.error("Failed to create employee", error);
     return serverError("Unable to create employee.");
   }

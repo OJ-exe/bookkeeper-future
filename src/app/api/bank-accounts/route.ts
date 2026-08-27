@@ -1,5 +1,5 @@
-import { createBankAccount, listBankAccounts } from "@/lib/server/bankingService";
-import { badRequest, created, ok, serverError, unauthorized } from "@/lib/server/response";
+import { createBankAccount, getBankAccounts } from "@/lib/server/bankingService";
+import { badRequest, created, ok, serverError, unauthorized, conflict, isUniqueConstraintError } from "@/lib/server/response";
 import { getUserFromRequest } from "@/lib/server/sessionService";
 import { bankAccountCreateSchema, parseValidation } from "@/lib/server/validation";
 
@@ -9,7 +9,7 @@ export async function GET(request: Request) {
     if (!user) {
       return unauthorized("Authentication required.");
     }
-    const accounts = await listBankAccounts(user.id);
+    const accounts = await getBankAccounts(user.id);
     return ok(accounts);
   } catch (error) {
     console.error("Failed to list bank accounts", error);
@@ -33,6 +33,9 @@ export async function POST(request: Request) {
     const account = await createBankAccount(user.id, parsed.data);
     return created(account);
   } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      return conflict("A bank account with this name already exists.");
+    }
     console.error("Failed to create bank account", error);
     return serverError("Unable to create bank account.");
   }

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { createVendor, listVendors } from "@/lib/server/vendorService";
-import { badRequest, created, ok, serverError, unauthorized } from "@/lib/server/response";
+import { createVendor, getVendors } from "@/lib/server/vendorService";
+import { badRequest, created, ok, serverError, unauthorized, conflict, isUniqueConstraintError } from "@/lib/server/response";
 import { getUserFromRequest } from "@/lib/server/sessionService";
 import { parseValidation, vendorCreateSchema } from "@/lib/server/validation";
 
@@ -10,7 +10,7 @@ export async function GET(request: Request) {
     if (!user) {
       return unauthorized("Authentication required.");
     }
-    const vendors = await listVendors(user.id);
+    const vendors = await getVendors(user.id);
     return ok(vendors);
   } catch (error) {
     console.error("Failed to list vendors", error);
@@ -34,6 +34,9 @@ export async function POST(request: Request) {
     const vendor = await createVendor(user.id, parsed.data);
     return created(vendor);
   } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      return conflict("A vendor with this email already exists.");
+    }
     console.error("Failed to create vendor", error);
     return serverError("Unable to create vendor.");
   }

@@ -1,65 +1,50 @@
 import { prisma } from "@/lib/prisma";
-import type { VendorCreateInput, VendorUpdateInput } from "@/types/vendor";
+import type { Prisma } from "@/generated/prisma/client";
 
-function buildInitials(name: string) {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  if (parts.length === 0) return "?";
-  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
-  return (parts[0][0] + parts[1][0]).toUpperCase();
+export async function getVendors(userId: number) {
+  return prisma.vendor.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+  });
 }
 
-function normalizeVendorPayload(input: VendorCreateInput | Record<string, unknown>) {
-  const name = typeof input.name === "string" ? input.name : "";
-  return {
-    name,
-    initials: typeof input.initials === "string" ? input.initials : buildInitials(name),
-    preferred: input.preferred === true,
-    gstin: typeof input.gstin === "string" ? input.gstin : null,
-    city: typeof input.city === "string" ? input.city : null,
-    contactName: typeof input.contactName === "string" ? input.contactName : null,
-    email: typeof input.email === "string" ? input.email : null,
-    phone: typeof input.phone === "string" ? input.phone : null,
-    spend: typeof input.spend === "string" ? input.spend : "₹0",
-    spendPct: typeof input.spendPct === "string" ? input.spendPct : "0% of total",
-    payable: typeof input.payable === "string" ? input.payable : "₹0",
-    payableNote: typeof input.payableNote === "string" ? input.payableNote : "No bills",
-    status: typeof input.status === "string" ? input.status : "Active",
-    isNew: input.isNew === true,
-  };
+export async function getVendorById(userId: number, id: number) {
+  return prisma.vendor.findFirst({
+    where: { id, userId },
+  });
 }
 
-export async function listVendors(userId: number) {
-  return prisma.vendor.findMany({ where: { userId }, orderBy: { createdAt: "desc" } });
+export async function createVendor(
+  userId: number,
+  data: Omit<Prisma.VendorCreateInput, "user">
+) {
+  return prisma.vendor.create({
+    data: {
+      ...data,
+      user: { connect: { id: userId } },
+    },
+  });
 }
 
-export async function createVendor(userId: number, input: VendorCreateInput) {
-  return prisma.vendor.create({ data: { userId, ...normalizeVendorPayload(input) } });
-}
-
-export async function updateVendor(userId: number, id: number, input: VendorUpdateInput) {
+export async function updateVendor(
+  userId: number,
+  id: number,
+  data: Prisma.VendorUpdateInput
+) {
   const existing = await prisma.vendor.findFirst({ where: { id, userId } });
-  if (!existing) {
-    return null;
-  }
+  if (!existing) return null;
 
   return prisma.vendor.update({
     where: { id },
-    data: {
-      ...normalizeVendorPayload({
-        ...existing,
-        ...input,
-        name: input.name ?? existing.name,
-      }),
-    },
+    data,
   });
 }
 
 export async function deleteVendor(userId: number, id: number) {
   const existing = await prisma.vendor.findFirst({ where: { id, userId } });
-  if (!existing) {
-    return false;
-  }
+  if (!existing) return null;
 
-  await prisma.vendor.delete({ where: { id } });
-  return true;
+  return prisma.vendor.delete({
+    where: { id },
+  });
 }

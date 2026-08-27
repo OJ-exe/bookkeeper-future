@@ -1,4 +1,4 @@
-import { deletePayment, getPayment, updatePayment } from "@/lib/server/paymentService";
+import { deletePayment, getPaymentById, updatePayment } from "@/lib/server/paymentService";
 import { badRequest, notFound, ok, serverError, unauthorized } from "@/lib/server/response";
 import { getUserFromRequest } from "@/lib/server/sessionService";
 import { parseValidation, paymentUpdateSchema } from "@/lib/server/validation";
@@ -16,7 +16,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return badRequest("Invalid payment id.");
     }
 
-    const payment = await getPayment(user.id, paymentId);
+    const payment = await getPaymentById(user.id, paymentId);
     if (!payment) {
       return notFound("Payment not found.");
     }

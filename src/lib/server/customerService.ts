@@ -1,40 +1,7 @@
 import { prisma } from "@/lib/prisma";
-import type { Customer } from "@/generated/prisma/client";
+import type { Prisma } from "@/generated/prisma/client";
 
-function normalizeCustomerPayload(input: Partial<Customer>) {
-  const name = typeof input.name === "string" ? input.name.trim() : "";
-  return {
-    name,
-    initials:
-      typeof input.initials === "string" && input.initials.trim()
-        ? input.initials.trim()
-        : name
-            .split(/\s+/)
-            .filter(Boolean)
-            .slice(0, 2)
-            .map((part) => part[0])
-            .join("")
-            .toUpperCase() || "?",
-    vip: input.vip === true,
-    gstin: typeof input.gstin === "string" ? input.gstin.trim() : null,
-    city: typeof input.city === "string" ? input.city.trim() : null,
-    contactName: typeof input.contactName === "string" ? input.contactName.trim() : null,
-    email: typeof input.email === "string" ? input.email.trim() : null,
-    phone: typeof input.phone === "string" ? input.phone.trim() : null,
-    revenue: typeof input.revenue === "string" ? input.revenue.trim() : "₹0",
-    revenuePct:
-      typeof input.revenuePct === "string" ? input.revenuePct.trim() : "0% of total",
-    outstanding: typeof input.outstanding === "string" ? input.outstanding.trim() : "₹0",
-    outstandingNote:
-      typeof input.outstandingNote === "string"
-        ? input.outstandingNote.trim()
-        : "No invoices",
-    status: typeof input.status === "string" ? input.status : "Active",
-    isNew: input.isNew === true,
-  };
-}
-
-export async function listCustomers(userId: number) {
+export async function getCustomers(userId: number) {
   return prisma.customer.findMany({
     where: { userId },
     orderBy: { createdAt: "desc" },
@@ -47,30 +14,37 @@ export async function getCustomerById(userId: number, id: number) {
   });
 }
 
-export async function createCustomer(userId: number, input: Partial<Customer>) {
+export async function createCustomer(
+  userId: number,
+  data: Omit<Prisma.CustomerCreateInput, "user">
+) {
   return prisma.customer.create({
-    data: { userId, ...normalizeCustomerPayload(input) },
+    data: {
+      ...data,
+      user: { connect: { id: userId } },
+    },
   });
 }
 
-export async function updateCustomer(userId: number, id: number, input: Partial<Customer>) {
+export async function updateCustomer(
+  userId: number,
+  id: number,
+  data: Prisma.CustomerUpdateInput
+) {
   const existing = await prisma.customer.findFirst({ where: { id, userId } });
-  if (!existing) {
-    return null;
-  }
+  if (!existing) return null;
 
   return prisma.customer.update({
     where: { id },
-    data: normalizeCustomerPayload({ ...existing, ...input }),
+    data,
   });
 }
 
 export async function deleteCustomer(userId: number, id: number) {
   const existing = await prisma.customer.findFirst({ where: { id, userId } });
-  if (!existing) {
-    return false;
-  }
+  if (!existing) return null;
 
-  await prisma.customer.delete({ where: { id } });
-  return true;
+  return prisma.customer.delete({
+    where: { id },
+  });
 }

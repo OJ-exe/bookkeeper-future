@@ -1,6 +1,6 @@
 import { deleteCustomer, updateCustomer } from "@/lib/server/customerService";
 import { getUserFromRequest } from "@/lib/server/sessionService";
-import { badRequest, notFound, ok, serverError, unauthorized } from "@/lib/server/response";
+import { badRequest, notFound, ok, serverError, unauthorized, conflict, isUniqueConstraintError } from "@/lib/server/response";
 import { customerUpdateSchema, parseValidation } from "@/lib/server/validation";
 
 export async function PUT(request: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -29,6 +29,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     return ok(customer);
   } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      return conflict("A customer with this email already exists.");
+    }
     console.error("Failed to update customer", error);
     return serverError("Unable to update customer.");
   }

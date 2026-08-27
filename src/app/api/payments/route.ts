@@ -1,4 +1,4 @@
-import { createPayment, listPayments } from "@/lib/server/paymentService";
+import { createPayment, getPayments } from "@/lib/server/paymentService";
 import { badRequest, created, ok, serverError, unauthorized } from "@/lib/server/response";
 import { getUserFromRequest } from "@/lib/server/sessionService";
 import { parseValidation, paymentCreateSchema } from "@/lib/server/validation";
@@ -9,7 +9,7 @@ export async function GET(request: Request) {
     if (!user) {
       return unauthorized("Authentication required.");
     }
-    const payments = await listPayments(user.id);
+    const payments = await getPayments(user.id);
     return ok(payments);
   } catch (error) {
     console.error("Failed to list payments", error);

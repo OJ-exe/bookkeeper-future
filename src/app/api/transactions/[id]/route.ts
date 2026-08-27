@@ -1,4 +1,4 @@
-import { deleteBankTransaction, getBankTransaction, updateBankTransaction } from "@/lib/server/bankingService";
+import { deleteBankTransaction, getBankTransactionById, updateBankTransaction } from "@/lib/server/bankingService";
 import { badRequest, notFound, ok, serverError, unauthorized } from "@/lib/server/response";
 import { getUserFromRequest } from "@/lib/server/sessionService";
 import { bankTransactionUpdateSchema, parseValidation } from "@/lib/server/validation";
@@ -16,7 +16,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return badRequest("Invalid transaction id.");
     }
 
-    const transaction = await getBankTransaction(user.id, transactionId);
+    const transaction = await getBankTransactionById(user.id, transactionId);
     if (!transaction) {
       return notFound("Transaction not found.");
     }

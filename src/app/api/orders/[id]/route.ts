@@ -1,5 +1,5 @@
 import { deleteOrder, updateOrder } from "@/lib/server/orderService";
-import { badRequest, notFound, ok, serverError, unauthorized } from "@/lib/server/response";
+import { badRequest, notFound, ok, serverError, unauthorized, conflict, isUniqueConstraintError } from "@/lib/server/response";
 import { getUserFromRequest } from "@/lib/server/sessionService";
 import { orderUpdateSchema, parseValidation } from "@/lib/server/validation";
 
@@ -30,6 +30,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     return ok(order);
   } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      return conflict("A order with this number already exists.");
+    }
     console.error("Failed to update order", error);
     return serverError("Unable to update order.");
   }

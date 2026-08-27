@@ -1,4 +1,4 @@
-import { createBankTransaction, listBankTransactions } from "@/lib/server/bankingService";
+import { createBankTransaction, getBankTransactions } from "@/lib/server/bankingService";
 import { badRequest, created, ok, serverError, unauthorized } from "@/lib/server/response";
 import { getUserFromRequest } from "@/lib/server/sessionService";
 import { bankTransactionCreateSchema, parseValidation } from "@/lib/server/validation";
@@ -9,7 +9,7 @@ export async function GET(request: Request) {
     if (!user) {
       return unauthorized("Authentication required.");
     }
-    const transactions = await listBankTransactions(user.id);
+    const transactions = await getBankTransactions(user.id);
     return ok(transactions);
   } catch (error) {
     console.error("Failed to list transactions", error);

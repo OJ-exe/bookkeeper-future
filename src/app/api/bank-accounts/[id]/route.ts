@@ -1,5 +1,5 @@
-import { deleteBankAccount, getBankAccount, updateBankAccount } from "@/lib/server/bankingService";
-import { badRequest, notFound, ok, serverError, unauthorized } from "@/lib/server/response";
+import { deleteBankAccount, getBankAccountById, updateBankAccount } from "@/lib/server/bankingService";
+import { badRequest, notFound, ok, serverError, unauthorized, conflict, isUniqueConstraintError } from "@/lib/server/response";
 import { getUserFromRequest } from "@/lib/server/sessionService";
 import { bankAccountUpdateSchema, parseValidation } from "@/lib/server/validation";
 
@@ -16,7 +16,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return badRequest("Invalid bank account id.");
     }
 
-    const account = await getBankAccount(user.id, accountId);
+    const account = await getBankAccountById(user.id, accountId);
     if (!account) {
       return notFound("Bank account not found.");
     }
@@ -55,6 +55,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     return ok(account);
   } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      return conflict("A bank account with this name already exists.");
+    }
     console.error("Failed to update bank account", error);
     return serverError("Unable to update bank account.");
   }

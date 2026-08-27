@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@/generated/prisma/client";
 
 export type ApiErrorBody = {
   error: string;
@@ -27,4 +28,16 @@ export function unauthorized(error: string) {
 
 export function serverError(error: string) {
   return NextResponse.json({ error }, { status: 500 });
+}
+
+export function conflict(error: string) {
+  return NextResponse.json({ error }, { status: 409 });
+}
+
+/**
+ * True when the error is a Prisma unique-constraint violation (P2002),
+ * e.g. a duplicate email/code/number scoped to the current user.
+ */
+export function isUniqueConstraintError(error: unknown): boolean {
+  return error instanceof Prisma.PrismaClientKnownRequestError && error.code === "P2002";
 }

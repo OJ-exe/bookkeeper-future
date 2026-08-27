@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { deleteVendor, updateVendor } from "@/lib/server/vendorService";
-import { badRequest, notFound, ok, serverError, unauthorized } from "@/lib/server/response";
+import { badRequest, notFound, ok, serverError, unauthorized, conflict, isUniqueConstraintError } from "@/lib/server/response";
 import { getUserFromRequest } from "@/lib/server/sessionService";
 import { parseValidation, vendorUpdateSchema } from "@/lib/server/validation";
 
@@ -36,6 +36,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     return ok(vendor);
   } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      return conflict("A vendor with this email already exists.");
+    }
     console.error("Failed to update vendor", error);
     return serverError("Unable to update vendor.");
   }

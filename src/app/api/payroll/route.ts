@@ -1,4 +1,4 @@
-import { createPayrollRun, listPayrollRuns } from "@/lib/server/payrollService";
+import { createPayrollRun, getPayrollRuns } from "@/lib/server/payrollService";
 import { badRequest, created, ok, serverError, unauthorized } from "@/lib/server/response";
 import { getUserFromRequest } from "@/lib/server/sessionService";
 import { payrollCreateSchema, parseValidation } from "@/lib/server/validation";
@@ -9,7 +9,7 @@ export async function GET(request: Request) {
     if (!user) {
       return unauthorized("Authentication required.");
     }
-    const payrollRuns = await listPayrollRuns(user.id);
+    const payrollRuns = await getPayrollRuns(user.id);
     return ok(payrollRuns);
   } catch (error) {
     console.error("Failed to list payroll runs", error);

@@ -1,5 +1,5 @@
-import { createBill, listBills } from "@/lib/server/billService";
-import { badRequest, created, ok, serverError, unauthorized } from "@/lib/server/response";
+import { createBill, getBills } from "@/lib/server/billService";
+import { badRequest, created, ok, serverError, unauthorized, conflict, isUniqueConstraintError } from "@/lib/server/response";
 import { getUserFromRequest } from "@/lib/server/sessionService";
 import { billCreateSchema, parseValidation } from "@/lib/server/validation";
 
@@ -9,7 +9,7 @@ export async function GET(request: Request) {
     if (!user) {
       return unauthorized("Authentication required.");
     }
-    const bills = await listBills(user.id);
+    const bills = await getBills(user.id);
     return ok(bills);
   } catch (error) {
     console.error("Failed to list bills", error);
@@ -33,6 +33,9 @@ export async function POST(request: Request) {
     const bill = await createBill(user.id, parsed.data);
     return created(bill);
   } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      return conflict("A bill with this number already exists.");
+    }
     console.error("Failed to create bill", error);
     return serverError("Unable to create bill.");
   }

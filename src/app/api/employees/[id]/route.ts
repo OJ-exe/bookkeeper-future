@@ -1,5 +1,5 @@
 import { deleteEmployee, updateEmployee } from "@/lib/server/employeeService";
-import { badRequest, notFound, ok, serverError, unauthorized } from "@/lib/server/response";
+import { badRequest, notFound, ok, serverError, unauthorized, conflict, isUniqueConstraintError } from "@/lib/server/response";
 import { getUserFromRequest } from "@/lib/server/sessionService";
 import { employeeUpdateSchema, parseValidation } from "@/lib/server/validation";
 
@@ -30,6 +30,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     return ok(employee);
   } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      return conflict("A employee with this code already exists.");
+    }
     console.error("Failed to update employee", error);
     return serverError("Unable to update employee.");
   }

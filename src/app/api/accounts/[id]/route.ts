@@ -1,5 +1,5 @@
 import { deleteAccount, updateAccount } from "@/lib/server/accountService";
-import { badRequest, notFound, ok, serverError, unauthorized } from "@/lib/server/response";
+import { badRequest, notFound, ok, serverError, unauthorized, conflict, isUniqueConstraintError } from "@/lib/server/response";
 import { getUserFromRequest } from "@/lib/server/sessionService";
 import { accountUpdateSchema, parseValidation } from "@/lib/server/validation";
 
@@ -35,6 +35,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     return ok(account);
   } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      return conflict("A account with this code already exists.");
+    }
     console.error("Failed to update account", error);
     return serverError("Unable to update account.");
   }

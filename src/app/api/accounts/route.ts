@@ -1,5 +1,5 @@
-import { createAccount, listAccounts } from "@/lib/server/accountService";
-import { badRequest, created, ok, serverError, unauthorized } from "@/lib/server/response";
+import { createAccount, getAccounts } from "@/lib/server/accountService";
+import { badRequest, created, ok, serverError, unauthorized, conflict, isUniqueConstraintError } from "@/lib/server/response";
 import { getUserFromRequest } from "@/lib/server/sessionService";
 import { accountCreateSchema, parseValidation } from "@/lib/server/validation";
 
@@ -9,7 +9,7 @@ export async function GET(request: Request) {
     if (!user) {
       return unauthorized("Authentication required.");
     }
-    const accounts = await listAccounts(user.id);
+    const accounts = await getAccounts(user.id);
     return ok(accounts);
   } catch (error) {
     console.error("Failed to list accounts", error);
@@ -33,6 +33,9 @@ export async function POST(request: Request) {
     const account = await createAccount(user.id, parsed.data);
     return created(account);
   } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      return conflict("A account with this code already exists.");
+    }
     console.error("Failed to create account", error);
     return serverError("Unable to create account.");
   }

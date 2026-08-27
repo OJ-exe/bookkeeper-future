@@ -1,5 +1,5 @@
-import { deleteBill, getBill, updateBill } from "@/lib/server/billService";
-import { badRequest, notFound, ok, serverError, unauthorized } from "@/lib/server/response";
+import { deleteBill, getBillById, updateBill } from "@/lib/server/billService";
+import { badRequest, notFound, ok, serverError, unauthorized, conflict, isUniqueConstraintError } from "@/lib/server/response";
 import { getUserFromRequest } from "@/lib/server/sessionService";
 import { billUpdateSchema, parseValidation } from "@/lib/server/validation";
 
@@ -16,7 +16,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return badRequest("Invalid bill id.");
     }
 
-    const bill = await getBill(user.id, billId);
+    const bill = await getBillById(user.id, billId);
     if (!bill) {
       return notFound("Bill not found.");
     }
@@ -55,6 +55,9 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
 
     return ok(bill);
   } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      return conflict("A bill with this number already exists.");
+    }
     console.error("Failed to update bill", error);
     return serverError("Unable to update bill.");
   }

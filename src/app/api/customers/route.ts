@@ -1,6 +1,6 @@
 import { getUserFromRequest } from "@/lib/server/sessionService";
-import { createCustomer, listCustomers } from "@/lib/server/customerService";
-import { badRequest, created, ok, serverError, unauthorized } from "@/lib/server/response";
+import { createCustomer, getCustomers } from "@/lib/server/customerService";
+import { badRequest, created, ok, serverError, unauthorized, conflict, isUniqueConstraintError } from "@/lib/server/response";
 import { customerCreateSchema, parseValidation } from "@/lib/server/validation";
 
 export async function GET(request: Request) {
@@ -10,7 +10,7 @@ export async function GET(request: Request) {
       return unauthorized("Authentication required.");
     }
 
-    const customers = await listCustomers(user.id);
+    const customers = await getCustomers(user.id);
     return ok(customers);
   } catch (error) {
     console.error("Failed to list customers", error);
@@ -35,6 +35,9 @@ export async function POST(request: Request) {
     const customer = await createCustomer(user.id, parsed.data);
     return created(customer);
   } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      return conflict("A customer with this email already exists.");
+    }
     console.error("Failed to create customer", error);
     return serverError("Unable to create customer.");
   }

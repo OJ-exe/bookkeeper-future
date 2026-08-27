@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import {
   Search,
   Filter,
@@ -45,7 +45,14 @@ import { useToast } from "@/components/ui/Toast";
 import { useRouter } from "next/navigation";
 
 const employeeCsvHeaders = [
-  "Code", "Name", "Department", "Designation", "Email", "Phone", "CTC", "Status",
+  "Code",
+  "Name",
+  "Department",
+  "Designation",
+  "Email",
+  "Phone",
+  "CTC",
+  "Status",
 ];
 
 const employeeStatuses: EmployeeStatus[] = ["Active", "On Leave", "Inactive"];
@@ -53,16 +60,22 @@ const employeeStatuses: EmployeeStatus[] = ["Active", "On Leave", "Inactive"];
 function employeeInitials(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return "?";
-  return (parts.length === 1 ? parts[0].slice(0, 2) : parts[0][0] + parts[1][0]).toUpperCase();
+  return (
+    parts.length === 1 ? parts[0].slice(0, 2) : parts[0][0] + parts[1][0]
+  ).toUpperCase();
 }
 
 function buildImportedEmployee(row: Record<string, string>): Employee | null {
   const name = (row["Name"] ?? row["name"] ?? "").trim();
   if (!name) return null;
   const rawDept = (row["Department"] ?? "").trim() as Department;
-  const department: Department = departments.includes(rawDept) ? rawDept : departments[0];
+  const department: Department = departments.includes(rawDept)
+    ? rawDept
+    : departments[0];
   const rawStatus = (row["Status"] ?? "").trim() as EmployeeStatus;
-  const status: EmployeeStatus = employeeStatuses.includes(rawStatus) ? rawStatus : "Active";
+  const status: EmployeeStatus = employeeStatuses.includes(rawStatus)
+    ? rawStatus
+    : "Active";
   return {
     code: row["Code"]?.trim() || `EMP-${Math.floor(100 + Math.random() * 900)}`,
     name,
@@ -90,7 +103,7 @@ function tabPredicate(tab: string, e: Employee): boolean {
     case "On Leave":
       return e.status === "On Leave";
     case "New Joiners":
-      return e.joinedNew;
+      return e.joinedNew ?? false;
     case "Inactive":
       return e.status === "Inactive";
     default:
@@ -112,24 +125,26 @@ export default function EmployeesScreen() {
   const [addOpen, setAddOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<ApiEmployee | null>(null);
   const [viewTarget, setViewTarget] = useState<ApiEmployee | null>(null);
-  const [deactivateTarget, setDeactivateTarget] = useState<ApiEmployee | null>(null);
+  const [deactivateTarget, setDeactivateTarget] = useState<ApiEmployee | null>(
+    null
+  );
+
+  const loadEmployees = useCallback(async () => {
+    try {
+      const response = await fetch("/api/employees");
+      if (!response.ok) {
+        throw new Error("Failed to load employees");
+      }
+      const data = (await response.json()) as ApiEmployee[];
+      setEmployees(data);
+    } catch {
+      setEmployees([]);
+    }
+  }, []);
 
   useEffect(() => {
-    async function loadEmployees() {
-      try {
-        const response = await fetch("/api/employees");
-        if (!response.ok) {
-          throw new Error("Failed to load employees");
-        }
-        const data = (await response.json()) as ApiEmployee[];
-        setEmployees(data);
-      } catch {
-        setEmployees([]);
-      }
-    }
-
-    void loadEmployees();
-  }, []);
+     void loadEmployees();
+    }, [loadEmployees]);
 
   async function addEmployee(employee: Employee) {
     try {
@@ -151,9 +166,16 @@ export default function EmployeesScreen() {
     }
   }
 
-  async function updateEmployee(item: ApiEmployee, patch: Partial<ApiEmployee>) {
+  async function updateEmployee(
+    item: ApiEmployee,
+    patch: Partial<ApiEmployee>
+  ) {
     if (!item.id) {
-      setEmployees((current) => current.map((entry) => (entry === item ? { ...entry, ...patch } : entry)));
+      setEmployees((current) =>
+        current.map((entry) =>
+          entry === item ? { ...entry, ...patch } : entry
+        )
+      );
       toast("Employee updated.");
       return;
     }
@@ -170,7 +192,9 @@ export default function EmployeesScreen() {
       }
 
       const updated = (await response.json()) as ApiEmployee;
-      setEmployees((current) => current.map((entry) => (entry.id === updated.id ? updated : entry)));
+      setEmployees((current) =>
+        current.map((entry) => (entry.id === updated.id ? updated : entry))
+      );
       toast("Employee updated.");
     } catch {
       toast("Unable to update employee right now.");
@@ -185,13 +209,18 @@ export default function EmployeesScreen() {
     }
 
     try {
-      const response = await fetch(`/api/employees/${item.id}`, { method: "DELETE" });
+      const response = await fetch(`/api/employees/${item.id}`, {
+        method: "DELETE",
+      });
+
       if (!response.ok) {
         throw new Error("Failed to delete employee");
       }
 
-      setEmployees((current) => current.filter((entry) => entry.id !== item.id));
-      toast("Employee removed.");
+      setEmployees((current) =>
+        current.filter((entry) => entry.id !== item.id)
+      );
+      toast("Employee removed successfully.");
     } catch {
       toast("Unable to delete employee right now.");
     }
@@ -222,10 +251,20 @@ export default function EmployeesScreen() {
               variant="outline"
               size="sm"
               onClick={() =>
-                downloadCsvTemplate("employees-template.csv", employeeCsvHeaders, [
-                  "EMP-001", "Rajesh Kumar", "Sales", "Sales Manager",
-                  "rajesh.kumar@company.com", "+91 98765 43210", "₹14.4L", "Active",
-                ])
+                downloadCsvTemplate(
+                  "employees-template.csv",
+                  employeeCsvHeaders,
+                  [
+                    "EMP-001",
+                    "Rajesh Kumar",
+                    "Sales",
+                    "Sales Manager",
+                    "rajesh.kumar@company.com",
+                    "+91 98765 43210",
+                    "₹14.4L",
+                    "Active",
+                  ]
+                )
               }
             >
               <Download size={16} /> Download Template
@@ -233,11 +272,17 @@ export default function EmployeesScreen() {
             <UploadButton<Employee>
               label="Upload CSV"
               build={buildImportedEmployee}
-             onImport={(records) => {
-               void Promise.all(records.map((employee) => addEmployee(employee)));
-}}
+              onImport={(records) => {
+                void Promise.all(
+                  records.map((employee) => addEmployee(employee))
+                );
+              }}
             />
-            <Button variant="bronze" size="sm" onClick={() => setAddOpen(true)}>
+            <Button
+              variant="bronze"
+              size="sm"
+              onClick={() => setAddOpen(true)}
+            >
               <Plus size={16} /> Add Employee
             </Button>
           </>
@@ -283,7 +328,7 @@ export default function EmployeesScreen() {
                 key={t}
                 type="button"
                 onClick={() => setTab(t)}
-                className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition ${
+                className={`rounded-lg border px-3 py-1.5 text-xs font-medium transition cursor-pointer ${
                   active
                     ? "border-bronze bg-bronze-soft text-bronze"
                     : "border-line text-fg-soft hover:bg-bronze-soft/50"
@@ -314,7 +359,7 @@ export default function EmployeesScreen() {
             />
             <button
               type="button"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-sm font-medium text-fg-soft hover:bg-bronze-soft/50 transition"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-line px-3 py-1.5 text-sm font-medium text-fg-soft hover:bg-bronze-soft/50 transition cursor-pointer"
             >
               <Filter size={14} /> Filters
             </button>
@@ -373,7 +418,9 @@ export default function EmployeesScreen() {
                     </td>
                     <td className="py-3 pr-3 font-medium text-fg">{e.ctc}</td>
                     <td className="py-3 pr-3">
-                      <StatusPill tone={statusTone[e.status]}>{e.status}</StatusPill>
+                      <StatusPill tone={statusTone[e.status]}>
+                        {e.status}
+                      </StatusPill>
                     </td>
                     <td className="py-3 text-right">
                       <Menu
@@ -383,7 +430,7 @@ export default function EmployeesScreen() {
                           <button
                             type="button"
                             aria-label={`Actions for ${e.name}`}
-                            className="text-muted hover:text-bronze transition"
+                            className="text-muted hover:text-bronze transition cursor-pointer"
                           >
                             <MoreVertical size={16} />
                           </button>
@@ -399,7 +446,7 @@ export default function EmployeesScreen() {
                           icon={Wallet}
                           onClick={() => {
                             router.push("/dashboard/payroll");
-                            toast("Opening payroll…", "info");
+                            toast("Opening payroll…");
                           }}
                         >
                           Run Payroll
@@ -428,19 +475,27 @@ export default function EmployeesScreen() {
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1">
               <button
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-line text-muted hover:bg-bronze-soft/50"
+                type="button"
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-line text-muted hover:bg-bronze-soft/50 cursor-pointer"
                 aria-label="Previous page"
               >
                 <ChevronLeft size={15} />
               </button>
-              <button className="flex h-8 w-8 items-center justify-center rounded-lg bg-bronze-soft font-medium text-bronze">
+              <button
+                type="button"
+                className="flex h-8 w-8 items-center justify-center rounded-lg bg-bronze-soft font-medium text-bronze cursor-pointer"
+              >
                 1
               </button>
-              <button className="flex h-8 w-8 items-center justify-center rounded-lg border border-line text-fg-soft hover:bg-bronze-soft/50">
+              <button
+                type="button"
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-line text-fg-soft hover:bg-bronze-soft/50 cursor-pointer"
+              >
                 2
               </button>
               <button
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-line text-muted hover:bg-bronze-soft/50"
+                type="button"
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-line text-muted hover:bg-bronze-soft/50 cursor-pointer"
                 aria-label="Next page"
               >
                 <ChevronRight size={15} />
@@ -481,7 +536,9 @@ export default function EmployeesScreen() {
           setEditTarget(null);
         }}
         onCreate={(employee) => void addEmployee(employee)}
-        onUpdate={(item, patch) => void updateEmployee(item as ApiEmployee, patch)}
+        onUpdate={(item, patch) =>
+          void updateEmployee(item as ApiEmployee, patch)
+        }
       />
 
       <Modal
@@ -503,7 +560,7 @@ export default function EmployeesScreen() {
                 }
                 setDeactivateTarget(null);
               }}
-              className="h-11 px-5 rounded-xl bg-danger text-white text-sm font-medium hover:opacity-90 transition"
+              className="h-11 px-5 rounded-xl bg-danger text-white text-sm font-medium hover:opacity-90 transition cursor-pointer"
             >
               Deactivate
             </button>
@@ -512,8 +569,10 @@ export default function EmployeesScreen() {
       >
         <p className="text-sm text-fg-soft">
           Are you sure you want to deactivate{" "}
-          <span className="font-semibold text-fg">{deactivateTarget?.name}</span>? They
-          will be excluded from active payroll runs.
+          <span className="font-semibold text-fg">
+            {deactivateTarget?.name}
+          </span>
+          ? They will be excluded from active payroll runs.
         </p>
       </Modal>
     </div>

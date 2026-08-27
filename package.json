@@ -17,7 +17,7 @@
     "country-list": "^2.4.1",
     "currency-codes": "^2.2.0",
     "install": "^0.13.0",
-    "lucide-react": "^1.21.0",
+    "lucide-react": "^1.34.0",
     "next": "16.2.9",
     "pg": "^8.22.0",
     "prisma": "^7.8.0",

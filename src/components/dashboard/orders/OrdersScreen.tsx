@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import {
   Search,
   Filter,
@@ -45,12 +45,22 @@ import DetailModal from "@/components/ui/DetailModal";
 import { useToast } from "@/components/ui/Toast";
 
 const orderCsvHeaders = [
-  "Order Number", "Order Date", "Expected Date", "Party",
-  "Type", "Status", "Total", "Fulfilled",
+  "Order Number",
+  "Order Date",
+  "Expected Date",
+  "Party",
+  "Type",
+  "Status",
+  "Total",
+  "Fulfilled",
 ];
 
 const orderStatuses: OrderStatus[] = [
-  "Open", "Partially Fulfilled", "Fulfilled", "Cancelled", "Draft",
+  "Open",
+  "Partially Fulfilled",
+  "Fulfilled",
+  "Cancelled",
+  "Draft",
 ];
 
 function buildImportedOrder(row: Record<string, string>): Order | null {
@@ -100,16 +110,20 @@ function tabPredicate(tab: string, order: Order): boolean {
     case "Drafts":
       return order.status === "Draft";
     default:
-      return true; // "All"
+      return true;
   }
 }
+
+const PAGE_SIZE = 10;
 
 export default function OrdersScreen() {
   const { items: orders, add, remove, update, setItems } = useCollection<Order>("orders");
   const { add: addInvoice } = useCollection<Invoice>("invoices");
   const toast = useToast();
+
   const [tab, setTab] = useState("All");
   const [query, setQuery] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [createOpen, setCreateOpen] = useState(false);
   const [editTarget, setEditTarget] = useState<Order | null>(null);
@@ -133,18 +147,39 @@ export default function OrdersScreen() {
     toast(`Order ${order.number} converted to invoice.`);
   }
 
-  const q = query.trim().toLowerCase();
-  const filtered = orders.filter((order) => {
-    const matchesQuery =
-      !q ||
-      order.number.toLowerCase().includes(q) ||
-      order.party.toLowerCase().includes(q) ||
-      order.kind.toLowerCase().includes(q) ||
-      order.status.toLowerCase().includes(q);
-    return matchesQuery && tabPredicate(tab, order);
-  });
+  function handleConvertSelected() {
+    const targetOrders = orders.filter((o) => selected.has(o.number));
+    if (targetOrders.length === 0) {
+      toast("Select at least one order to convert.");
+      return;
+    }
+    targetOrders.forEach((o) => convertToInvoice(o));
+    setSelected(new Set());
+    toast(`Converted ${targetOrders.length} orders to invoices.`);
+  }
 
-  const allSelected = filtered.length > 0 && filtered.every((order) => selected.has(order.number));
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return orders.filter((order) => {
+      const matchesQuery =
+        !q ||
+        order.number.toLowerCase().includes(q) ||
+        order.party.toLowerCase().includes(q) ||
+        order.kind.toLowerCase().includes(q) ||
+        order.status.toLowerCase().includes(q);
+      return matchesQuery && tabPredicate(tab, order);
+    });
+  }, [orders, query, tab]);
+
+  const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
+  const paginatedOrders = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return filtered.slice(start, start + PAGE_SIZE);
+  }, [filtered, currentPage]);
+
+  const allSelected =
+    paginatedOrders.length > 0 &&
+    paginatedOrders.every((order) => selected.has(order.number));
 
   function toggleOne(number: string) {
     setSelected((prev) => {
@@ -159,9 +194,9 @@ export default function OrdersScreen() {
     setSelected((prev) => {
       const next = new Set(prev);
       if (allSelected) {
-        filtered.forEach((order) => next.delete(order.number));
+        paginatedOrders.forEach((order) => next.delete(order.number));
       } else {
-        filtered.forEach((order) => next.add(order.number));
+        paginatedOrders.forEach((order) => next.add(order.number));
       }
       return next;
     });
@@ -180,8 +215,14 @@ export default function OrdersScreen() {
               size="sm"
               onClick={() =>
                 downloadCsvTemplate("orders-template.csv", orderCsvHeaders, [
-                  "ORD-2026-125", "15 Jun 2026", "30 Jun 2026", "ABC Pvt Ltd",
-                  "Sales Order", "Open", "₹0", "0%",
+                  "ORD-2026-125",
+                  "15 Jun 2026",
+                  "30 Jun 2026",
+                  "ABC Pvt Ltd",
+                  "Sales Order",
+                  "Open",
+                  "₹0",
+                  "0%",
                 ])
               }
             >
@@ -204,36 +245,38 @@ export default function OrdersScreen() {
         <StatCard
           icon={ClipboardList}
           label="Total Orders"
-          value="64"
+          value={orders.length.toString()}
           tone="bronze"
         />
         <StatCard
           icon={PackageOpen}
           label="Open Orders"
-          value="₹850K"
-          sublabel="23 orders"
+          value={orders.filter((o) => o.status === "Open").length.toString()}
           tone="info"
         />
         <StatCard
           icon={PackageCheck}
           label="Fulfilled"
-          value="₹4.2M"
-          sublabel="This FY"
+          value={orders.filter((o) => o.status === "Fulfilled").length.toString()}
           tone="success"
-          trend={{ dir: "up", text: "12% vs last month" }}
         />
         <StatCard
           icon={Clock}
           label="Pending Value"
-          value="₹1.1M"
-          sublabel="18 orders"
+          value={orders.filter((o) => o.status === "Partially Fulfilled").length.toString()}
           sublabelTone="muted"
           tone="warning"
         />
         <StatCard
           icon={Percent}
           label="Conversion Rate"
-          value="76%"
+          value={
+            orders.length > 0
+              ? `${Math.round(
+                  (orders.filter((o) => o.status === "Fulfilled").length / orders.length) * 100
+                )}%`
+              : "0%"
+          }
           sublabel="Orders → invoices"
           tone="success"
         />
@@ -247,7 +290,10 @@ export default function OrdersScreen() {
             <button
               key={t}
               type="button"
-              onClick={() => setTab(t)}
+              onClick={() => {
+                setTab(t);
+                setCurrentPage(1);
+              }}
               className={`shrink-0 border-b-2 px-4 py-2.5 text-sm font-medium transition ${
                 active
                   ? "border-bronze text-bronze"
@@ -269,7 +315,10 @@ export default function OrdersScreen() {
               <Search size={16} className="shrink-0 text-muted" />
               <input
                 value={query}
-                onChange={(e) => setQuery(e.target.value)}
+                onChange={(e) => {
+                  setQuery(e.target.value);
+                  setCurrentPage(1);
+                }}
                 placeholder="Search order, party, type, status…"
                 className="w-full bg-transparent text-sm text-fg outline-none placeholder:text-muted"
               />
@@ -321,7 +370,9 @@ export default function OrdersScreen() {
               </MenuItem>
               <MenuItem icon={Download}>Export as Excel</MenuItem>
               <MenuDivider />
-              <MenuItem icon={FileText}>Convert Selected</MenuItem>
+              <MenuItem icon={FileText} onClick={handleConvertSelected}>
+                Convert Selected
+              </MenuItem>
             </Menu>
           </div>
         </div>
@@ -354,14 +405,14 @@ export default function OrdersScreen() {
               </tr>
             </thead>
             <tbody>
-              {filtered.length === 0 ? (
+              {paginatedOrders.length === 0 ? (
                 <tr>
                   <td colSpan={10} className="py-10 text-center text-muted">
                     No orders to show here yet.
                   </td>
                 </tr>
               ) : (
-                filtered.map((order) => {
+                paginatedOrders.map((order) => {
                   const isSelected = selected.has(order.number);
                   return (
                     <tr
@@ -415,7 +466,14 @@ export default function OrdersScreen() {
                           <MenuItem icon={Pencil} onClick={() => setEditTarget(order)}>
                             Edit
                           </MenuItem>
-                          <MenuItem icon={Ban} danger onClick={() => setDeleteTarget(order)}>
+                          <MenuItem
+                            icon={Ban}
+                            danger
+                            onClick={() => {
+                              update(order, { status: "Cancelled" });
+                              toast(`Order ${order.number} marked as Cancelled.`);
+                            }}
+                          >
                             Cancel
                           </MenuItem>
                           <MenuItem icon={Trash2} danger onClick={() => setDeleteTarget(order)}>
@@ -431,33 +489,35 @@ export default function OrdersScreen() {
           </table>
         </div>
 
-        {/* Pagination */}
+        {/* Dynamic Pagination */}
         <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between text-sm">
           <span className="text-muted">
-            Showing 1 to {filtered.length} of {filtered.length} orders
+            Showing {filtered.length > 0 ? (currentPage - 1) * PAGE_SIZE + 1 : 0} to{" "}
+            {Math.min(currentPage * PAGE_SIZE, filtered.length)} of {filtered.length} orders
           </span>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-1">
               <button
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-line text-muted hover:bg-bronze-soft/50"
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-line text-muted hover:bg-bronze-soft/50 disabled:opacity-40"
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
                 aria-label="Previous page"
               >
                 <ChevronLeft size={15} />
               </button>
-              <button className="flex h-8 w-8 items-center justify-center rounded-lg bg-bronze-soft font-medium text-bronze">
-                1
-              </button>
-              <button className="flex h-8 w-8 items-center justify-center rounded-lg border border-line text-fg-soft hover:bg-bronze-soft/50">
-                2
-              </button>
+              <span className="px-2 text-xs font-medium text-fg">
+                Page {currentPage} of {totalPages}
+              </span>
               <button
-                className="flex h-8 w-8 items-center justify-center rounded-lg border border-line text-muted hover:bg-bronze-soft/50"
+                className="flex h-8 w-8 items-center justify-center rounded-lg border border-line text-muted hover:bg-bronze-soft/50 disabled:opacity-40"
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage >= totalPages}
                 aria-label="Next page"
               >
                 <ChevronRight size={15} />
               </button>
             </div>
-            <span className="text-muted">10 / page</span>
+            <span className="text-muted">{PAGE_SIZE} / page</span>
           </div>
         </div>
       </Card>

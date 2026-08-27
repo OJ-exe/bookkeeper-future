@@ -1,5 +1,6 @@
 import { randomBytes } from "node:crypto";
 import { prisma } from "@/lib/prisma";
+import { cookies } from "next/headers";
 
 const SESSION_DURATION_MS = 1000 * 60 * 60 * 24 * 30; // 30 days
 
@@ -30,8 +31,8 @@ export async function deleteSession(token: string) {
   return prisma.session.deleteMany({ where: { token } });
 }
 
-export async function getUserFromRequest(request: Request) {
-  const token = request.cookies.get("sessionToken")?.value;
+export async function getUserFromRequest(_request: Request) {
+  const token = (await cookies()).get("sessionToken")?.value;
   if (!token) {
     return null;
   }

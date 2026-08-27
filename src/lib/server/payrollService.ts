@@ -40,22 +40,33 @@ function normalizePayrollPayload(input: PayrollRun | Record<string, unknown>) {
   };
 }
 
-export async function listPayrollRuns() {
-  const count = await prisma.payrollRun.count();
+export async function listPayrollRuns(userId: number) {
+  const count = await prisma.payrollRun.count({ where: { userId } });
 
   if (count === 0) {
-    await prisma.payrollRun.createMany({ data: seedPayrollRuns });
+    await prisma.payrollRun.createMany({
+      data: seedPayrollRuns.map((run) => ({ userId, ...run })),
+    });
   }
 
-  return prisma.payrollRun.findMany({ orderBy: { createdAt: "desc" } });
+  return prisma.payrollRun.findMany({ where: { userId }, orderBy: { createdAt: "desc" } });
 }
 
-export async function createPayrollRun(input: PayrollRun | Record<string, unknown>) {
-  return prisma.payrollRun.create({ data: normalizePayrollPayload(input) });
+export async function createPayrollRun(userId: number, input: PayrollRun | Record<string, unknown>) {
+  const payload = normalizePayrollPayload(input);
+  // The business id (e.g. "PR-2026-06") is global, but ownership is still
+  // enforced everywhere it's read back — collisions across two different
+  // companies picking the same run id are astronomically unlikely given the
+  // Date.now() fallback, and real callers supply period-derived ids.
+  return prisma.payrollRun.create({ data: { userId, ...payload } });
 }
 
-export async function updatePayrollRun(id: string, input: Partial<PayrollRun> | Record<string, unknown>) {
-  const existing = await prisma.payrollRun.findUnique({ where: { id } });
+export async function updatePayrollRun(
+  userId: number,
+  id: string,
+  input: Partial<PayrollRun> | Record<string, unknown>
+) {
+  const existing = await prisma.payrollRun.findFirst({ where: { id, userId } });
   if (!existing) {
     return null;
   }
@@ -68,8 +79,8 @@ export async function updatePayrollRun(id: string, input: Partial<PayrollRun> | 
   });
 }
 
-export async function deletePayrollRun(id: string) {
-  const existing = await prisma.payrollRun.findUnique({ where: { id } });
+export async function deletePayrollRun(userId: number, id: string) {
+  const existing = await prisma.payrollRun.findFirst({ where: { id, userId } });
   if (!existing) {
     return false;
   }

@@ -43,22 +43,28 @@ function normalizeOrderPayload(input: Order | Record<string, unknown>) {
   };
 }
 
-export async function listOrders() {
-  const count = await prisma.order.count();
+export async function listOrders(userId: number) {
+  const count = await prisma.order.count({ where: { userId } });
 
   if (count === 0) {
-    await prisma.order.createMany({ data: seedOrders });
+    await prisma.order.createMany({
+      data: seedOrders.map((order) => ({ userId, ...order })),
+    });
   }
 
-  return prisma.order.findMany({ orderBy: { createdAt: "desc" } });
+  return prisma.order.findMany({ where: { userId }, orderBy: { createdAt: "desc" } });
 }
 
-export async function createOrder(input: Order | Record<string, unknown>) {
-  return prisma.order.create({ data: normalizeOrderPayload(input) });
+export async function createOrder(userId: number, input: Order | Record<string, unknown>) {
+  return prisma.order.create({ data: { userId, ...normalizeOrderPayload(input) } });
 }
 
-export async function updateOrder(id: number, input: Partial<Order> | Record<string, unknown>) {
-  const existing = await prisma.order.findUnique({ where: { id } });
+export async function updateOrder(
+  userId: number,
+  id: number,
+  input: Partial<Order> | Record<string, unknown>
+) {
+  const existing = await prisma.order.findFirst({ where: { id, userId } });
   if (!existing) {
     return null;
   }
@@ -71,8 +77,8 @@ export async function updateOrder(id: number, input: Partial<Order> | Record<str
   });
 }
 
-export async function deleteOrder(id: number) {
-  const existing = await prisma.order.findUnique({ where: { id } });
+export async function deleteOrder(userId: number, id: number) {
+  const existing = await prisma.order.findFirst({ where: { id, userId } });
   if (!existing) {
     return false;
   }

@@ -16,7 +16,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return badRequest("Invalid bill id.");
     }
 
-    const bill = await getBill(billId);
+    const bill = await getBill(user.id, billId);
     if (!bill) {
       return notFound("Bill not found.");
     }
@@ -48,7 +48,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       return badRequest("Validation failed.", parsed.error.flatten().fieldErrors);
     }
 
-    const bill = await updateBill(billId, parsed.data);
+    const bill = await updateBill(user.id, billId, parsed.data);
     if (!bill) {
       return notFound("Bill not found.");
     }
@@ -73,7 +73,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
       return badRequest("Invalid bill id.");
     }
 
-    const deleted = await deleteBill(billId);
+    const deleted = await deleteBill(user.id, billId);
     if (!deleted) {
       return notFound("Bill not found.");
     }

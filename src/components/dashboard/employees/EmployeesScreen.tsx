@@ -233,7 +233,9 @@ export default function EmployeesScreen() {
             <UploadButton<Employee>
               label="Upload CSV"
               build={buildImportedEmployee}
-              onImport={(records) => setEmployees([...records, ...employees])}
+             onImport={(records) => {
+               void Promise.all(records.map((employee) => addEmployee(employee)));
+}}
             />
             <Button variant="bronze" size="sm" onClick={() => setAddOpen(true)}>
               <Plus size={16} /> Add Employee
@@ -479,7 +481,7 @@ export default function EmployeesScreen() {
           setEditTarget(null);
         }}
         onCreate={(employee) => void addEmployee(employee)}
-        onUpdate={(item, patch) => void updateEmployee(item, patch)}
+        onUpdate={(item, patch) => void updateEmployee(item as ApiEmployee, patch)}
       />
 
       <Modal

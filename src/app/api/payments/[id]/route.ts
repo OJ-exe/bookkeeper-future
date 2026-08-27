@@ -16,7 +16,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return badRequest("Invalid payment id.");
     }
 
-    const payment = await getPayment(paymentId);
+    const payment = await getPayment(user.id, paymentId);
     if (!payment) {
       return notFound("Payment not found.");
     }
@@ -48,7 +48,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       return badRequest("Validation failed.", parsed.error.flatten().fieldErrors);
     }
 
-    const payment = await updatePayment(paymentId, parsed.data);
+    const payment = await updatePayment(user.id, paymentId, parsed.data);
     if (!payment) {
       return notFound("Payment not found.");
     }
@@ -73,7 +73,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
       return badRequest("Invalid payment id.");
     }
 
-    const deleted = await deletePayment(paymentId);
+    const deleted = await deletePayment(user.id, paymentId);
     if (!deleted) {
       return notFound("Payment not found.");
     }

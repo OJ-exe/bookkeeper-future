@@ -1,6 +1,17 @@
 import { prisma } from "@/lib/prisma";
 import type { BankAccountCreateInput, BankAccountUpdateInput, BankTransactionCreateInput, BankTransactionUpdateInput } from "@/types/banking";
 
+const seedBankAccounts = [
+  { name: "HDFC Current", bankName: "HDFC Bank", accountNo: "••1234", balance: "₹4,12,000", ledger: "HDFC Bank A/c" },
+  { name: "ICICI Savings", bankName: "ICICI Bank", accountNo: "••8842", balance: "₹1,82,500", ledger: "ICICI Bank A/c" },
+  { name: "Cash in Hand", bankName: "Cash", accountNo: "••0000", balance: "₹85,400", ledger: "Cash A/c" },
+];
+
+const seedBankTransactions = [
+  { date: "18 Jun 2026", description: "Receipt from ABC Pvt Ltd", reference: "NEFT-AX9921", kind: "Inflow", amount: "₹48,500", account: "HDFC Current", status: "Unmatched" },
+  { date: "18 Jun 2026", description: "Vendor payment - Global Supplies", reference: "RTGS-GS4410", kind: "Outflow", amount: "₹1,25,000", account: "HDFC Current", status: "Matched" },
+];
+
 function normalizeBankAccountPayload(input: BankAccountCreateInput | Record<string, unknown>) {
   return {
     name: typeof input.name === "string" ? input.name : "",
@@ -11,7 +22,22 @@ function normalizeBankAccountPayload(input: BankAccountCreateInput | Record<stri
   };
 }
 
-function normalizeBankTransactionPayload(input: BankTransactionCreateInput | Record<string, unknown>) {
+async function resolveBankAccountId(userId: number, id: number | null) {
+  if (id === null) return null;
+  const record = await prisma.bankAccount.findFirst({ where: { id, userId } });
+  return record ? id : null;
+}
+
+async function resolvePaymentId(userId: number, id: number | null) {
+  if (id === null) return null;
+  const record = await prisma.payment.findFirst({ where: { id, userId } });
+  return record ? id : null;
+}
+
+async function normalizeBankTransactionPayload(
+  userId: number,
+  input: BankTransactionCreateInput | Record<string, unknown>
+) {
   const raw = input as Record<string, unknown>;
   return {
     date: typeof raw.date === "string" ? raw.date : null,
@@ -21,37 +47,33 @@ function normalizeBankTransactionPayload(input: BankTransactionCreateInput | Rec
     amount: typeof raw.amount === "string" ? raw.amount : "₹0",
     account: typeof raw.account === "string" ? raw.account : null,
     status: typeof raw.status === "string" ? raw.status : "Unmatched",
-    bankAccountId: typeof raw.bankAccountId === "number" ? raw.bankAccountId : null,
-    paymentId: typeof raw.paymentId === "number" ? raw.paymentId : null,
+    bankAccountId: await resolveBankAccountId(userId, typeof raw.bankAccountId === "number" ? raw.bankAccountId : null),
+    paymentId: await resolvePaymentId(userId, typeof raw.paymentId === "number" ? raw.paymentId : null),
   };
 }
 
-export async function listBankAccounts() {
-  const existingCount = await prisma.bankAccount.count();
+export async function listBankAccounts(userId: number) {
+  const existingCount = await prisma.bankAccount.count({ where: { userId } });
 
   if (existingCount === 0) {
     await prisma.bankAccount.createMany({
-      data: [
-        { name: "HDFC Current", bankName: "HDFC Bank", accountNo: "••1234", balance: "₹4,12,000", ledger: "HDFC Bank A/c" },
-        { name: "ICICI Savings", bankName: "ICICI Bank", accountNo: "••8842", balance: "₹1,82,500", ledger: "ICICI Bank A/c" },
-        { name: "Cash in Hand", bankName: "Cash", accountNo: "••0000", balance: "₹85,400", ledger: "Cash A/c" },
-      ],
+      data: seedBankAccounts.map((account) => ({ userId, ...account })),
     });
   }
 
-  return prisma.bankAccount.findMany({ orderBy: { createdAt: "desc" } });
+  return prisma.bankAccount.findMany({ where: { userId }, orderBy: { createdAt: "desc" } });
 }
 
-export async function getBankAccount(id: number) {
-  return prisma.bankAccount.findUnique({ where: { id } });
+export async function getBankAccount(userId: number, id: number) {
+  return prisma.bankAccount.findFirst({ where: { id, userId } });
 }
 
-export async function createBankAccount(input: BankAccountCreateInput) {
-  return prisma.bankAccount.create({ data: normalizeBankAccountPayload(input) });
+export async function createBankAccount(userId: number, input: BankAccountCreateInput) {
+  return prisma.bankAccount.create({ data: { userId, ...normalizeBankAccountPayload(input) } });
 }
 
-export async function updateBankAccount(id: number, input: BankAccountUpdateInput) {
-  const existing = await prisma.bankAccount.findUnique({ where: { id } });
+export async function updateBankAccount(userId: number, id: number, input: BankAccountUpdateInput) {
+  const existing = await prisma.bankAccount.findFirst({ where: { id, userId } });
   if (!existing) {
     return null;
   }
@@ -62,8 +84,8 @@ export async function updateBankAccount(id: number, input: BankAccountUpdateInpu
   });
 }
 
-export async function deleteBankAccount(id: number) {
-  const existing = await prisma.bankAccount.findUnique({ where: { id } });
+export async function deleteBankAccount(userId: number, id: number) {
+  const existing = await prisma.bankAccount.findFirst({ where: { id, userId } });
   if (!existing) {
     return false;
   }
@@ -72,43 +94,46 @@ export async function deleteBankAccount(id: number) {
   return true;
 }
 
-export async function listBankTransactions() {
-  const existingCount = await prisma.bankTransaction.count();
+export async function listBankTransactions(userId: number) {
+  const existingCount = await prisma.bankTransaction.count({ where: { userId } });
 
   if (existingCount === 0) {
     await prisma.bankTransaction.createMany({
-      data: [
-        { date: "18 Jun 2026", description: "Receipt from ABC Pvt Ltd", reference: "NEFT-AX9921", kind: "Inflow", amount: "₹48,500", account: "HDFC Current", status: "Unmatched" },
-        { date: "18 Jun 2026", description: "Vendor payment - Global Supplies", reference: "RTGS-GS4410", kind: "Outflow", amount: "₹1,25,000", account: "HDFC Current", status: "Matched" },
-      ],
+      data: seedBankTransactions.map((transaction) => ({ userId, ...transaction })),
     });
   }
 
-  return prisma.bankTransaction.findMany({ orderBy: { createdAt: "desc" } });
+  return prisma.bankTransaction.findMany({ where: { userId }, orderBy: { createdAt: "desc" } });
 }
 
-export async function getBankTransaction(id: number) {
-  return prisma.bankTransaction.findUnique({ where: { id } });
+export async function getBankTransaction(userId: number, id: number) {
+  return prisma.bankTransaction.findFirst({ where: { id, userId } });
 }
 
-export async function createBankTransaction(input: BankTransactionCreateInput) {
-  return prisma.bankTransaction.create({ data: normalizeBankTransactionPayload(input) });
+export async function createBankTransaction(userId: number, input: BankTransactionCreateInput) {
+  return prisma.bankTransaction.create({
+    data: { userId, ...(await normalizeBankTransactionPayload(userId, input)) },
+  });
 }
 
-export async function updateBankTransaction(id: number, input: BankTransactionUpdateInput) {
-  const existing = await prisma.bankTransaction.findUnique({ where: { id } });
+export async function updateBankTransaction(userId: number, id: number, input: BankTransactionUpdateInput) {
+  const existing = await prisma.bankTransaction.findFirst({ where: { id, userId } });
   if (!existing) {
     return null;
   }
 
   return prisma.bankTransaction.update({
     where: { id },
-    data: normalizeBankTransactionPayload({ ...existing, ...input, description: input.description ?? existing.description }),
+    data: await normalizeBankTransactionPayload(userId, {
+      ...existing,
+      ...input,
+      description: input.description ?? existing.description,
+    }),
   });
 }
 
-export async function deleteBankTransaction(id: number) {
-  const existing = await prisma.bankTransaction.findUnique({ where: { id } });
+export async function deleteBankTransaction(userId: number, id: number) {
+  const existing = await prisma.bankTransaction.findFirst({ where: { id, userId } });
   if (!existing) {
     return false;
   }

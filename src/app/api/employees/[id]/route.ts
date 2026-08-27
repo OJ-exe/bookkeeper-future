@@ -23,7 +23,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       return badRequest("Validation failed.", parsed.error.flatten().fieldErrors);
     }
 
-    const employee = await updateEmployee(employeeId, parsed.data);
+    const employee = await updateEmployee(user.id, employeeId, parsed.data);
     if (!employee) {
       return notFound("Employee not found.");
     }
@@ -48,7 +48,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
       return badRequest("Invalid employee id.");
     }
 
-    const deleted = await deleteEmployee(employeeId);
+    const deleted = await deleteEmployee(user.id, employeeId);
     if (!deleted) {
       return notFound("Employee not found.");
     }

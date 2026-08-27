@@ -16,7 +16,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return badRequest("Invalid transaction id.");
     }
 
-    const transaction = await getBankTransaction(transactionId);
+    const transaction = await getBankTransaction(user.id, transactionId);
     if (!transaction) {
       return notFound("Transaction not found.");
     }
@@ -48,7 +48,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       return badRequest("Validation failed.", parsed.error.flatten().fieldErrors);
     }
 
-    const transaction = await updateBankTransaction(transactionId, parsed.data);
+    const transaction = await updateBankTransaction(user.id, transactionId, parsed.data);
     if (!transaction) {
       return notFound("Transaction not found.");
     }
@@ -73,7 +73,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
       return badRequest("Invalid transaction id.");
     }
 
-    const deleted = await deleteBankTransaction(transactionId);
+    const deleted = await deleteBankTransaction(user.id, transactionId);
     if (!deleted) {
       return notFound("Transaction not found.");
     }

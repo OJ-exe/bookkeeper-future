@@ -25,22 +25,28 @@ function normalizeAccountPayload(input: Account | Record<string, unknown>) {
   };
 }
 
-export async function listAccounts() {
-  const count = await prisma.account.count();
+export async function listAccounts(userId: number) {
+  const count = await prisma.account.count({ where: { userId } });
 
   if (count === 0) {
-    await prisma.account.createMany({ data: seedAccounts });
+    await prisma.account.createMany({
+      data: seedAccounts.map((account) => ({ userId, ...account })),
+    });
   }
 
-  return prisma.account.findMany({ orderBy: { createdAt: "desc" } });
+  return prisma.account.findMany({ where: { userId }, orderBy: { createdAt: "desc" } });
 }
 
-export async function createAccount(input: Account | Record<string, unknown>) {
-  return prisma.account.create({ data: normalizeAccountPayload(input) });
+export async function createAccount(userId: number, input: Account | Record<string, unknown>) {
+  return prisma.account.create({ data: { userId, ...normalizeAccountPayload(input) } });
 }
 
-export async function updateAccount(id: number, input: Partial<Account> | Record<string, unknown>) {
-  const existing = await prisma.account.findUnique({ where: { id } });
+export async function updateAccount(
+  userId: number,
+  id: number,
+  input: Partial<Account> | Record<string, unknown>
+) {
+  const existing = await prisma.account.findFirst({ where: { id, userId } });
   if (!existing) {
     return null;
   }
@@ -53,8 +59,8 @@ export async function updateAccount(id: number, input: Partial<Account> | Record
   });
 }
 
-export async function deleteAccount(id: number) {
-  const existing = await prisma.account.findUnique({ where: { id } });
+export async function deleteAccount(userId: number, id: number) {
+  const existing = await prisma.account.findFirst({ where: { id, userId } });
   if (!existing) {
     return false;
   }

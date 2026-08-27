@@ -4,21 +4,39 @@ import type { User } from "@/generated/prisma/client";
 
 const SALT_BYTES = 16;
 const HASH_BYTES = 64;
-const ITERATIONS = 310000;
-const DIGEST = "sha256";
+
+
 
 export function hashPassword(password: string) {
   const salt = randomBytes(SALT_BYTES).toString("hex");
-  const derivedKey = scryptSync(password, salt, HASH_BYTES, { N: 2 ** 14, r: 8, p: 1, digest: DIGEST });
+
+  const derivedKey = scryptSync(password, salt, HASH_BYTES, {
+    N: 2 ** 14,
+    r: 8,
+    p: 1,
+  });
+
   return `${salt}:${derivedKey.toString("hex")}`;
 }
 
 export function verifyPassword(password: string, stored: string) {
   const [salt, key] = stored.split(":");
   if (!salt || !key) return false;
+
   try {
-    const derivedKey = scryptSync(password, salt, HASH_BYTES, { N: 2 ** 14, r: 8, p: 1, digest: DIGEST });
-    return timingSafeEqual(Buffer.from(key, "hex"), derivedKey);
+    const derivedKey = scryptSync(password, salt, HASH_BYTES, {
+      N: 2 ** 14,
+      r: 8,
+      p: 1,
+    });
+
+    const storedKey = Buffer.from(key, "hex");
+
+    if (storedKey.length !== derivedKey.length) {
+      return false;
+    }
+
+    return timingSafeEqual(derivedKey, storedKey);
   } catch {
     return false;
   }

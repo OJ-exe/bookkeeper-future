@@ -29,7 +29,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       return badRequest("Validation failed.", parsed.error.flatten().fieldErrors);
     }
 
-    const vendor = await updateVendor(vendorId, parsed.data);
+    const vendor = await updateVendor(user.id, vendorId, parsed.data);
     if (!vendor) {
       return notFound("Vendor not found.");
     }
@@ -54,7 +54,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
       return badRequest("Invalid vendor id.");
     }
 
-    const deleted = await deleteVendor(vendorId);
+    const deleted = await deleteVendor(user.id, vendorId);
     if (!deleted) {
       return notFound("Vendor not found.");
     }

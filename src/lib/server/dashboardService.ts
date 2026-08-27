@@ -171,7 +171,7 @@ function buildFallbackPayload(): DashboardAnalyticsPayload {
   };
 }
 
-export async function getDashboardAnalytics(): Promise<DashboardAnalyticsPayload> {
+export async function getDashboardAnalytics(userId: number): Promise<DashboardAnalyticsPayload> {
   const now = new Date();
   const startDate = new Date(now.getFullYear(), now.getMonth() - 5, 1);
 
@@ -188,6 +188,7 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalyticsPayload
     ] = await Promise.all([
       prisma.invoice.findMany({
         where: {
+          userId,
           createdAt: { gte: startDate },
         },
         orderBy: { createdAt: "desc" },
@@ -205,6 +206,7 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalyticsPayload
       }),
       prisma.bill.findMany({
         where: {
+          userId,
           createdAt: { gte: startDate },
         },
         orderBy: { createdAt: "desc" },
@@ -222,6 +224,7 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalyticsPayload
       }),
       prisma.payment.findMany({
         where: {
+          userId,
           createdAt: { gte: startDate },
         },
         orderBy: { createdAt: "desc" },
@@ -238,6 +241,7 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalyticsPayload
         },
       }),
       prisma.customer.findMany({
+        where: { userId },
         orderBy: { createdAt: "desc" },
         take: 10,
         select: {
@@ -247,6 +251,7 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalyticsPayload
         },
       }),
       prisma.vendor.findMany({
+        where: { userId },
         orderBy: { createdAt: "desc" },
         take: 10,
         select: {
@@ -256,6 +261,7 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalyticsPayload
         },
       }),
       prisma.bankAccount.findMany({
+        where: { userId },
         orderBy: { createdAt: "desc" },
         select: {
           balance: true,
@@ -263,6 +269,7 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalyticsPayload
       }),
       prisma.bankTransaction.findMany({
         where: {
+          userId,
           createdAt: { gte: startDate },
         },
         orderBy: { createdAt: "desc" },
@@ -277,6 +284,7 @@ export async function getDashboardAnalytics(): Promise<DashboardAnalyticsPayload
         },
       }),
       prisma.employee.findMany({
+        where: { userId },
         orderBy: { createdAt: "desc" },
         take: 10,
         select: {

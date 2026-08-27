@@ -28,16 +28,16 @@ function normalizeVendorPayload(input: VendorCreateInput | Record<string, unknow
   };
 }
 
-export async function listVendors() {
-  return prisma.vendor.findMany({ orderBy: { createdAt: "desc" } });
+export async function listVendors(userId: number) {
+  return prisma.vendor.findMany({ where: { userId }, orderBy: { createdAt: "desc" } });
 }
 
-export async function createVendor(input: VendorCreateInput) {
-  return prisma.vendor.create({ data: normalizeVendorPayload(input) });
+export async function createVendor(userId: number, input: VendorCreateInput) {
+  return prisma.vendor.create({ data: { userId, ...normalizeVendorPayload(input) } });
 }
 
-export async function updateVendor(id: number, input: VendorUpdateInput) {
-  const existing = await prisma.vendor.findUnique({ where: { id } });
+export async function updateVendor(userId: number, id: number, input: VendorUpdateInput) {
+  const existing = await prisma.vendor.findFirst({ where: { id, userId } });
   if (!existing) {
     return null;
   }
@@ -54,8 +54,8 @@ export async function updateVendor(id: number, input: VendorUpdateInput) {
   });
 }
 
-export async function deleteVendor(id: number) {
-  const existing = await prisma.vendor.findUnique({ where: { id } });
+export async function deleteVendor(userId: number, id: number) {
+  const existing = await prisma.vendor.findFirst({ where: { id, userId } });
   if (!existing) {
     return false;
   }

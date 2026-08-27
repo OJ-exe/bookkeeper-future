@@ -16,7 +16,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ id: 
       return badRequest("Invalid bank account id.");
     }
 
-    const account = await getBankAccount(accountId);
+    const account = await getBankAccount(user.id, accountId);
     if (!account) {
       return notFound("Bank account not found.");
     }
@@ -48,7 +48,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       return badRequest("Validation failed.", parsed.error.flatten().fieldErrors);
     }
 
-    const account = await updateBankAccount(accountId, parsed.data);
+    const account = await updateBankAccount(user.id, accountId, parsed.data);
     if (!account) {
       return notFound("Bank account not found.");
     }
@@ -73,7 +73,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
       return badRequest("Invalid bank account id.");
     }
 
-    const deleted = await deleteBankAccount(accountId);
+    const deleted = await deleteBankAccount(user.id, accountId);
     if (!deleted) {
       return notFound("Bank account not found.");
     }

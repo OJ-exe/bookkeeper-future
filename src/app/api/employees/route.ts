@@ -9,7 +9,7 @@ export async function GET(request: Request) {
     if (!user) {
       return unauthorized("Authentication required.");
     }
-    const employees = await listEmployees();
+    const employees = await listEmployees(user.id);
     return ok(employees);
   } catch (error) {
     console.error("Failed to list employees", error);
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
       return badRequest("Validation failed.", parsed.error.flatten().fieldErrors);
     }
 
-    const employee = await createEmployee(parsed.data);
+    const employee = await createEmployee(user.id, parsed.data);
     return created(employee);
   } catch (error) {
     console.error("Failed to create employee", error);

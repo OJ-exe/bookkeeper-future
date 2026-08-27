@@ -9,7 +9,7 @@ export async function GET(request: Request) {
     if (!user) {
       return unauthorized("Authentication required.");
     }
-    const payrollRuns = await listPayrollRuns();
+    const payrollRuns = await listPayrollRuns(user.id);
     return ok(payrollRuns);
   } catch (error) {
     console.error("Failed to list payroll runs", error);
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
       return badRequest("Validation failed.", parsed.error.flatten().fieldErrors);
     }
 
-    const payrollRun = await createPayrollRun(parsed.data);
+    const payrollRun = await createPayrollRun(user.id, parsed.data);
     return created(payrollRun);
   } catch (error) {
     console.error("Failed to create payroll run", error);

@@ -35,54 +35,22 @@ function normalizeCustomerPayload(input: Partial<Customer>) {
 }
 
 export async function listCustomers(userId: number) {
-  const count = await prisma.customer.count({ where: { userId } });
+  return prisma.customer.findMany({
+    where: { userId },
+    orderBy: { createdAt: "desc" },
+  });
+}
 
-  if (count === 0) {
-    await prisma.customer.createMany({
-      data: [
-        {
-          userId,
-          name: "ABC Pvt Ltd",
-          initials: "ABC",
-          vip: true,
-          gstin: "27ABCDE1234F1Z5",
-          city: "Mumbai, Maharashtra",
-          contactName: "Rajesh Kumar",
-          email: "rajesh@abc.com",
-          phone: "+91 98765 43210",
-          revenue: "₹4.20M",
-          revenuePct: "28% of total",
-          outstanding: "₹45,000",
-          outstandingNote: "2 invoices",
-          status: "Active",
-          isNew: false,
-        },
-        {
-          userId,
-          name: "XYZ Industries",
-          initials: "XYZ",
-          vip: false,
-          gstin: "29XYZAB9876K1Z1",
-          city: "Bengaluru, Karnataka",
-          contactName: "Neha Singh",
-          email: "neha@xyz.com",
-          phone: "+91 91234 56789",
-          revenue: "₹3.50M",
-          revenuePct: "23% of total",
-          outstanding: "₹1,20,000",
-          outstandingNote: "5 invoices",
-          status: "Active",
-          isNew: false,
-        },
-      ],
-    });
-  }
-
-  return prisma.customer.findMany({ where: { userId }, orderBy: { createdAt: "desc" } });
+export async function getCustomerById(userId: number, id: number) {
+  return prisma.customer.findFirst({
+    where: { id, userId },
+  });
 }
 
 export async function createCustomer(userId: number, input: Partial<Customer>) {
-  return prisma.customer.create({ data: { userId, ...normalizeCustomerPayload(input) } });
+  return prisma.customer.create({
+    data: { userId, ...normalizeCustomerPayload(input) },
+  });
 }
 
 export async function updateCustomer(userId: number, id: number, input: Partial<Customer>) {

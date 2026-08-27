@@ -8,21 +8,26 @@ datasource db {
 }
 
 model User {
-  id           Int       @id @default(autoincrement())
+  id           Int      @id @default(autoincrement())
   name         String
-  email        String    @unique
+  email        String   @unique
   passwordHash String
   company      String?
-  createdAt    DateTime  @default(now())
-  updatedAt    DateTime  @updatedAt
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
-  customers    Customer[]
-  vendors      Vendor[]
-  employees    Employee[]
-  orders       Order[]
-  payrollRuns  PayrollRun[]
-  invoices     Invoice[]
-  sessions     Session[]
+  customers        Customer[]
+  vendors          Vendor[]
+  employees        Employee[]
+  orders           Order[]
+  payrollRuns      PayrollRun[]
+  invoices         Invoice[]
+  bills            Bill[]
+  payments         Payment[]
+  bankAccounts     BankAccount[]
+  bankTransactions BankTransaction[]
+  sessions         Session[]
+  accounts         Account[]
 }
 
 model Session {
@@ -36,36 +41,37 @@ model Session {
 }
 
 model Customer {
-  id              Int      @id @default(autoincrement())
+  id              Int       @id @default(autoincrement())
   userId          Int
   name            String
   initials        String?
-  vip             Boolean  @default(false)
+  vip             Boolean   @default(false)
   gstin           String?
   city            String?
   contactName     String?
   email           String?
   phone           String?
-  revenue         String?  @default("₹0")
-  revenuePct      String?  @default("0% of total")
-  outstanding     String?  @default("₹0")
-  outstandingNote String?  @default("No invoices")
-  status          String   @default("Active")
-  isNew           Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  revenue         String?   @default("₹0")
+  revenuePct      String?   @default("0% of total")
+  outstanding     String?   @default("₹0")
+  outstandingNote String?   @default("No invoices")
+  status          String    @default("Active")
+  isNew           Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
   invoices        Invoice[]
   payments        Payment[]
 
   user User @relation(fields: [userId], references: [id])
 
-  @@index([userId])
   @@unique([userId, email])
+  @@index([userId])
 }
 
 model Account {
   id        Int      @id @default(autoincrement())
-  code      String   @unique
+  userId    Int
+  code      String
   name      String
   type      String   @default("Asset")
   subtype   String?  @default("Current Assets")
@@ -74,27 +80,39 @@ model Account {
   note      String?  @default("Default account")
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, code])
+  @@index([userId])
 }
 
 model Employee {
-  id           Int      @id @default(autoincrement())
-  code         String   @unique
-  name         String
-  initials     String?
-  department   String   @default("Sales")
-  designation  String?
-  email        String?
-  phone        String?
-  ctc          String?  @default("₹0")
-  status       String   @default("Active")
-  joinedNew    Boolean  @default(false)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id          Int      @id @default(autoincrement())
+  userId      Int
+  code        String
+  name        String
+  initials    String?
+  department  String   @default("Sales")
+  designation String?
+  email       String?
+  phone       String?
+  ctc         String?  @default("₹0")
+  status      String   @default("Active")
+  joinedNew   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, code])
+  @@index([userId])
 }
 
 model Order {
   id           Int      @id @default(autoincrement())
-  number       String   @unique
+  userId       Int
+  number       String
   date         String?
   expectedDate String?
   party        String
@@ -105,10 +123,16 @@ model Order {
   value        String?  @default("₹0")
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, number])
+  @@index([userId])
 }
 
 model PayrollRun {
   id         String   @id
+  userId     Int
   period     String
   employees  Int      @default(0)
   gross      String?  @default("₹0")
@@ -118,117 +142,150 @@ model PayrollRun {
   payDate    String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
 }
 
 model Vendor {
-  id              Int      @id @default(autoincrement())
-  name            String
-  initials        String?
-  preferred       Boolean  @default(false)
-  gstin           String?
-  city            String?
-  contactName     String?
-  email           String?  @unique
-  phone           String?
-  spend           String?  @default("₹0")
-  spendPct        String?  @default("0% of total")
-  payable         String?  @default("₹0")
-  payableNote     String?  @default("No bills")
-  status          String   @default("Active")
-  isNew           Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  bills           Bill[]
-  payments        Payment[]
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  name        String
+  initials    String?
+  preferred   Boolean   @default(false)
+  gstin       String?
+  city        String?
+  contactName String?
+  email       String?
+  phone       String?
+  spend       String?   @default("₹0")
+  spendPct    String?   @default("0% of total")
+  payable     String?   @default("₹0")
+  payableNote String?   @default("No bills")
+  status      String    @default("Active")
+  isNew       Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  bills       Bill[]
+  payments    Payment[]
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, email])
+  @@index([userId])
 }
 
 model Invoice {
-  id              Int      @id @default(autoincrement())
-  number          String   @unique
-  date            String?
-  due             String?
-  customer        String
-  source          String?  @default("Direct")
-  status          String   @default("Sent")
-  grandTotal      String?  @default("₹0")
-  netReceivable   String?  @default("₹0")
-  open            String?  @default("₹0")
-  customerId      Int?
-  vendorId        Int?
-  customerRecord  Customer? @relation(fields: [customerId], references: [id])
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  payments        Payment[]
+  id             Int       @id @default(autoincrement())
+  userId         Int
+  number         String
+  date           String?
+  due            String?
+  customer       String
+  source         String?   @default("Direct")
+  status         String    @default("Sent")
+  grandTotal     String?   @default("₹0")
+  netReceivable  String?   @default("₹0")
+  open           String?   @default("₹0")
+  customerId     Int?
+  vendorId       Int?
+  customerRecord Customer? @relation(fields: [customerId], references: [id])
+  user           User      @relation(fields: [userId], references: [id])
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+  payments       Payment[]
+
+  @@unique([userId, number])
+  @@index([userId])
 }
 
 model Bill {
-  id              Int      @id @default(autoincrement())
-  number          String   @unique
-  date            String?
-  due             String?
-  vendor          String
-  source          String?  @default("Direct")
-  status          String   @default("Open")
-  grandTotal      String?  @default("₹0")
-  netPayable      String?  @default("₹0")
-  open            String?  @default("₹0")
-  vendorId        Int?
-  vendorRecord    Vendor?  @relation(fields: [vendorId], references: [id])
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  payments        Payment[]
+  id           Int       @id @default(autoincrement())
+  userId       Int
+  number       String
+  date         String?
+  due          String?
+  vendor       String
+  source       String?   @default("Direct")
+  status       String    @default("Open")
+  grandTotal   String?   @default("₹0")
+  netPayable   String?   @default("₹0")
+  open         String?   @default("₹0")
+  vendorId     Int?
+  vendorRecord Vendor?   @relation(fields: [vendorId], references: [id])
+  user         User      @relation(fields: [userId], references: [id])
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+  payments     Payment[]
+
+  @@unique([userId, number])
+  @@index([userId])
 }
 
 model Payment {
-  id              Int      @id @default(autoincrement())
-  date            String?
-  party           String
-  direction       String   @default("Received")
-  method          String   @default("Bank Transfer")
-  reference       String?
-  status          String   @default("Pending")
-  amount          String?  @default("₹0")
-  customerId      Int?
-  vendorId        Int?
-  invoiceId       Int?
-  billId          Int?
-  bankAccountId   Int?
-  customer        Customer? @relation(fields: [customerId], references: [id])
-  vendor          Vendor?  @relation(fields: [vendorId], references: [id])
-  invoice         Invoice? @relation(fields: [invoiceId], references: [id])
-  bill            Bill?    @relation(fields: [billId], references: [id])
-  bankAccount     BankAccount? @relation(fields: [bankAccountId], references: [id])
-  transactions    BankTransaction[]
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id            Int               @id @default(autoincrement())
+  userId        Int
+  date          String?
+  party         String
+  direction     String            @default("Received")
+  method        String            @default("Bank Transfer")
+  reference     String?
+  status        String            @default("Pending")
+  amount        String?           @default("₹0")
+  customerId    Int?
+  vendorId      Int?
+  invoiceId     Int?
+  billId        Int?
+  bankAccountId Int?
+  customer      Customer?         @relation(fields: [customerId], references: [id])
+  vendor        Vendor?           @relation(fields: [vendorId], references: [id])
+  invoice       Invoice?          @relation(fields: [invoiceId], references: [id])
+  bill          Bill?             @relation(fields: [billId], references: [id])
+  bankAccount   BankAccount?      @relation(fields: [bankAccountId], references: [id])
+  user          User              @relation(fields: [userId], references: [id])
+  transactions  BankTransaction[]
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([userId])
 }
 
 model BankAccount {
-  id              Int      @id @default(autoincrement())
-  name            String   @unique
-  bankName        String?
-  accountNo       String?
-  balance         String?  @default("₹0")
-  ledger          String?
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
-  transactions    BankTransaction[]
-  payments        Payment[]
+  id           Int               @id @default(autoincrement())
+  userId       Int
+  name         String
+  bankName     String?
+  accountNo    String?
+  balance      String?           @default("₹0")
+  ledger       String?
+  user         User              @relation(fields: [userId], references: [id])
+  createdAt    DateTime          @default(now())
+  updatedAt    DateTime          @updatedAt
+  transactions BankTransaction[]
+  payments     Payment[]
+
+  @@unique([userId, name])
+  @@index([userId])
 }
 
 model BankTransaction {
-  id              Int      @id @default(autoincrement())
-  date            String?
-  description     String
-  reference       String?
-  kind            String   @default("Inflow")
-  amount          String?  @default("₹0")
-  account         String?
-  status          String   @default("Unmatched")
-  bankAccountId   Int?
-  paymentId       Int?
-  bankAccount     BankAccount? @relation(fields: [bankAccountId], references: [id])
-  payment         Payment? @relation(fields: [paymentId], references: [id])
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  id            Int          @id @default(autoincrement())
+  userId        Int
+  date          String?
+  description   String
+  reference     String?
+  kind          String       @default("Inflow")
+  amount        String?      @default("₹0")
+  account       String?
+  status        String       @default("Unmatched")
+  bankAccountId Int?
+  paymentId     Int?
+  bankAccount   BankAccount? @relation(fields: [bankAccountId], references: [id])
+  payment       Payment?     @relation(fields: [paymentId], references: [id])
+  user          User         @relation(fields: [userId], references: [id])
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([userId])
 }

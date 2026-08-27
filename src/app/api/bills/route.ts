@@ -9,7 +9,7 @@ export async function GET(request: Request) {
     if (!user) {
       return unauthorized("Authentication required.");
     }
-    const bills = await listBills();
+    const bills = await listBills(user.id);
     return ok(bills);
   } catch (error) {
     console.error("Failed to list bills", error);
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
       return badRequest("Validation failed.", parsed.error.flatten().fieldErrors);
     }
 
-    const bill = await createBill(parsed.data);
+    const bill = await createBill(user.id, parsed.data);
     return created(bill);
   } catch (error) {
     console.error("Failed to create bill", error);

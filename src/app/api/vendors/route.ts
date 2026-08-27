@@ -10,7 +10,7 @@ export async function GET(request: Request) {
     if (!user) {
       return unauthorized("Authentication required.");
     }
-    const vendors = await listVendors();
+    const vendors = await listVendors(user.id);
     return ok(vendors);
   } catch (error) {
     console.error("Failed to list vendors", error);
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
       return badRequest("Validation failed.", parsed.error.flatten().fieldErrors);
     }
 
-    const vendor = await createVendor(parsed.data);
+    const vendor = await createVendor(user.id, parsed.data);
     return created(vendor);
   } catch (error) {
     console.error("Failed to create vendor", error);

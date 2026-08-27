@@ -54,22 +54,28 @@ function normalizeEmployeePayload(input: Employee | Record<string, unknown>) {
   };
 }
 
-export async function listEmployees() {
-  const count = await prisma.employee.count();
+export async function listEmployees(userId: number) {
+  const count = await prisma.employee.count({ where: { userId } });
 
   if (count === 0) {
-    await prisma.employee.createMany({ data: seedEmployees });
+    await prisma.employee.createMany({
+      data: seedEmployees.map((employee) => ({ userId, ...employee })),
+    });
   }
 
-  return prisma.employee.findMany({ orderBy: { createdAt: "desc" } });
+  return prisma.employee.findMany({ where: { userId }, orderBy: { createdAt: "desc" } });
 }
 
-export async function createEmployee(input: Employee | Record<string, unknown>) {
-  return prisma.employee.create({ data: normalizeEmployeePayload(input) });
+export async function createEmployee(userId: number, input: Employee | Record<string, unknown>) {
+  return prisma.employee.create({ data: { userId, ...normalizeEmployeePayload(input) } });
 }
 
-export async function updateEmployee(id: number, input: Partial<Employee> | Record<string, unknown>) {
-  const existing = await prisma.employee.findUnique({ where: { id } });
+export async function updateEmployee(
+  userId: number,
+  id: number,
+  input: Partial<Employee> | Record<string, unknown>
+) {
+  const existing = await prisma.employee.findFirst({ where: { id, userId } });
   if (!existing) {
     return null;
   }
@@ -82,8 +88,8 @@ export async function updateEmployee(id: number, input: Partial<Employee> | Reco
   });
 }
 
-export async function deleteEmployee(id: number) {
-  const existing = await prisma.employee.findUnique({ where: { id } });
+export async function deleteEmployee(userId: number, id: number) {
+  const existing = await prisma.employee.findFirst({ where: { id, userId } });
   if (!existing) {
     return false;
   }

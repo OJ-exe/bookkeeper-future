@@ -28,7 +28,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       return badRequest("Validation failed.", parsed.error.flatten().fieldErrors);
     }
 
-    const account = await updateAccount(accountId, parsed.data);
+    const account = await updateAccount(user.id, accountId, parsed.data);
     if (!account) {
       return notFound("Account not found.");
     }
@@ -53,7 +53,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
       return badRequest("Invalid account id.");
     }
 
-    const deleted = await deleteAccount(accountId);
+    const deleted = await deleteAccount(user.id, accountId);
     if (!deleted) {
       return notFound("Account not found.");
     }

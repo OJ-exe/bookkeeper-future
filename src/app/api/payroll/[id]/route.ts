@@ -18,7 +18,7 @@ export async function PUT(request: Request, { params }: { params: Promise<{ id: 
       return badRequest("Validation failed.", parsed.error.flatten().fieldErrors);
     }
 
-    const payrollRun = await updatePayrollRun(id, parsed.data);
+    const payrollRun = await updatePayrollRun(user.id, id, parsed.data);
     if (!payrollRun) {
       return notFound("Payroll run not found.");
     }
@@ -38,7 +38,7 @@ export async function DELETE(request: Request, { params }: { params: Promise<{ i
   try {
     const { id } = await params;
 
-    const deleted = await deletePayrollRun(id);
+    const deleted = await deletePayrollRun(user.id, id);
     if (!deleted) {
       return notFound("Payroll run not found.");
     }
